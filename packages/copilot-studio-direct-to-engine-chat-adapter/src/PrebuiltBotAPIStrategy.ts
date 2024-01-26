@@ -18,13 +18,12 @@ import {
 import { type HalfDuplexChatAdapterAPIStrategy } from './private/types/HalfDuplexChatAdapterAPIStrategy';
 import { Transport } from './types/Transport';
 
-const TestCanvasBotAPIStrategyInitSchema = () =>
+const PrebuiltBotAPIStrategyInitSchema = () =>
   object(
     {
-      botId: string([regex(UUID_REGEX)]),
-      environmentId: string([regex(UUID_REGEX)]),
+      botIdentifier: string([regex(UUID_REGEX)]),
+      environmentEndpointURL: special(input => input instanceof URL) as SpecialSchema<URL>,
       getTokenCallback: special(input => typeof input === 'function') as SpecialSchema<() => Promise<string>>,
-      islandURI: special(input => input instanceof URL) as SpecialSchema<URL>,
       transport: union([
         string([value('rest')]) as StringSchema<'rest'>,
         string([value('server sent events')]) as StringSchema<'server sent events'>
@@ -33,14 +32,20 @@ const TestCanvasBotAPIStrategyInitSchema = () =>
     never()
   );
 
-type TestCanvasBotAPIStrategyInit = Output<ReturnType<typeof TestCanvasBotAPIStrategyInitSchema>>;
+type PrebuiltBotAPIStrategyInit = Output<ReturnType<typeof PrebuiltBotAPIStrategyInitSchema>>;
 
-export default class TestCanvasBotAPIStrategy implements HalfDuplexChatAdapterAPIStrategy {
-  constructor({ botId, islandURI, environmentId, getTokenCallback, transport }: TestCanvasBotAPIStrategyInit) {
+const API_VERSION = '2022-03-01-preview';
+
+export default class PublishedBotAPIStrategy implements HalfDuplexChatAdapterAPIStrategy {
+  constructor({ botIdentifier, environmentEndpointURL, getTokenCallback, transport }: PrebuiltBotAPIStrategyInit) {
     this.#getTokenCallback = getTokenCallback;
-
-    this.#baseURL = new URL(`/environments/${encodeURI(environmentId)}/bots/${encodeURI(botId)}/test/`, islandURI);
     this.#transport = transport;
+
+    const url = new URL(`/powervirtualagents/prebuilt/authenticated/bots/${botIdentifier}/`, environmentEndpointURL);
+
+    url.searchParams.set('api-version', API_VERSION);
+
+    this.#baseURL = url;
   }
 
   #baseURL: URL;

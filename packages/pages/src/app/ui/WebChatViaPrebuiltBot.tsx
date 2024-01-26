@@ -1,16 +1,22 @@
+import {
+  PrebuiltBotAPIStrategy,
+  createHalfDuplexChatAdapter,
+  toDirectLineJS
+} from 'copilot-studio-direct-to-engine-chat-adapter';
 import { Fragment, memo, useCallback, useEffect, useMemo } from 'react';
-import { fromTurnBasedChatAdapterAPI, PowerPlatformAPIChatAdapter, PrebuiltBotAPIStrategy } from 'powerva-chat-adapter';
 
-import ReactWebChat from 'botframework-webchat';
+import { type Transport } from '../types/Transport';
+import ReactWebChatShim from './ReactWebChatShim';
 
 type Props = {
   botIdentifier: string;
   environmentID: string;
   hostnameSuffix: string;
   token: string;
+  transport: Transport;
 };
 
-export default memo(function WebChat({ botIdentifier, environmentID, hostnameSuffix, token }: Props) {
+export default memo(function WebChat({ botIdentifier, environmentID, hostnameSuffix, token, transport }: Props) {
   // Should use PowerPlatformApiDiscovery to find out the base URL.
   const environmentIDWithoutHyphens = useMemo(() => environmentID.replaceAll('-', ''), [environmentID]);
   const getTokenCallback = useCallback<() => Promise<string>>(() => Promise.resolve(token), [token]);
@@ -28,11 +34,12 @@ export default memo(function WebChat({ botIdentifier, environmentID, hostnameSuf
   const environmentEndpointURL = new URL(`https://${hostnamePrefix}.environment.${hostnameSuffix}`);
 
   const strategy = useMemo(
-    () => new PrebuiltBotAPIStrategy({ botIdentifier, environmentEndpointURL, getTokenCallback }),
-    [botIdentifier, environmentEndpointURL, getTokenCallback]
+    () => new PrebuiltBotAPIStrategy({ botIdentifier, environmentEndpointURL, getTokenCallback, transport }),
+    [botIdentifier, environmentEndpointURL, getTokenCallback, transport]
   );
 
-  const chatAdapter = useMemo(() => fromTurnBasedChatAdapterAPI(new PowerPlatformAPIChatAdapter(strategy)), [strategy]);
+  // const chatAdapter = useMemo(() => fromTurnBasedChatAdapterAPI(new PowerPlatformAPIChatAdapter(strategy)), [strategy]);
+  const chatAdapter = useMemo(() => toDirectLineJS(createHalfDuplexChatAdapter(strategy)), [strategy]);
 
   useEffect(() => () => chatAdapter?.end(), [chatAdapter]);
 
@@ -41,16 +48,14 @@ export default memo(function WebChat({ botIdentifier, environmentID, hostnameSuf
       <h2>Chat adapter strategy parameters</h2>
       <pre>
         new PrebuiltBotAPIStrategy({'{'}
-        {'\n  '}botIdentifier: {"'"}
-        {botIdentifier}
-        {"'"},{'\n  '}environmentEndpointURL: {"'"}
-        {environmentEndpointURL.toString()}
-        {"'"}
-        {'\n  '}getTokenCallback: () =&gt; token
+        {'\n  '}botIdentifier: {`'${botIdentifier}',`}
+        {'\n  '}environmentEndpointURL: {`'${environmentEndpointURL.toString()}',`}
+        {'\n  '}getTokenCallback: () =&gt; token,
+        {'\n  '}transport: {`'${transport}'`}
         {'\n}'})
       </pre>
       <div className="webchat">
-        <ReactWebChat directLine={chatAdapter} />
+        <ReactWebChatShim directLine={chatAdapter} />
       </div>
     </Fragment>
   );
