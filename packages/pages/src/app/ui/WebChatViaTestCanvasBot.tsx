@@ -10,25 +10,27 @@ import ReactWebChatShim from './ReactWebChatShim';
 
 type Props = {
   botId: string;
+  deltaToken: string;
   environmentId: string;
   islandURI: string;
   token: string;
   transport: Transport;
 };
 
-export default memo(function WebChat({ botId, environmentId, islandURI, token, transport }: Props) {
+export default memo(function WebChat({ botId, deltaToken, environmentId, islandURI, token, transport }: Props) {
   const getTokenCallback = useCallback<() => Promise<string>>(() => Promise.resolve(token), [token]);
 
   const strategy = useMemo(
     () =>
       new TestCanvasBotAPIStrategy({
         botId,
+        deltaToken,
         environmentId,
         getTokenCallback,
         islandURI: new URL(islandURI),
         transport
       }),
-    [botId, environmentId, getTokenCallback, islandURI]
+    [botId, deltaToken, environmentId, getTokenCallback, islandURI]
   );
 
   const chatAdapter = useMemo(() => toDirectLineJS(createHalfDuplexChatAdapter(strategy)), [strategy]);
@@ -50,6 +52,7 @@ export default memo(function WebChat({ botId, environmentId, islandURI, token, t
       <pre>
         new TestCanvasBotAPIStrategy({'{'}
         {'\n  '}botId: {`'${botId}',`}
+        {'\n  '}deltaToken: {`'${deltaToken}',`}
         {'\n  '}environmentId: {`'${environmentId.toString()}',`}
         {'\n  '}getTokenCallback: () =&gt; token,
         {'\n  '}islandURI: {`new URL('${islandURI.toString()}'),`}

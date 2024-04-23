@@ -7,6 +7,7 @@ import onErrorResumeNext from '../util/onErrorResumeNext';
 type State = {
   botIdentifier: string;
   botSchema: string;
+  deltaToken: string;
   environmentID: string;
   hostnameSuffix: string;
   islandURI?: string;
@@ -20,6 +21,7 @@ type ResetAction = { type: 'RESET' };
 type SaveToSessionStorageAction = { type: 'SAVE_TO_SESSION_STORAGE' };
 type SetBotIdentifierAction = { payload: string; type: 'SET_BOT_IDENTIFIER' };
 type SetBotSchemaAction = { payload: string; type: 'SET_BOT_SCHEMA' };
+type SetDeltaTokenAction = { payload: string; type: 'SET_DELTA_TOKEN' };
 type SetEnvironmentIDAction = { payload: string; type: 'SET_ENVIRONMENT_ID' };
 type SetHostnameSuffixAction = { payload: string; type: 'SET_HOSTNAME_SUFFIX' };
 type SetIslandURIAction = { payload: string; type: 'SET_ISLAND_URI' };
@@ -32,6 +34,7 @@ type Action =
   | SaveToSessionStorageAction
   | SetBotIdentifierAction
   | SetBotSchemaAction
+  | SetDeltaTokenAction
   | SetEnvironmentIDAction
   | SetHostnameSuffixAction
   | SetIslandURIAction
@@ -44,6 +47,7 @@ type DispatchAction = {
   saveToSessionStorage: () => void;
   setBotIdentifier: (botIdentifier: string) => void;
   setBotSchema: (botSchema: string) => void;
+  setDeltaToken: (deltaToken: string) => void;
   setEnvironmentID: (environmentID: string) => void;
   setHostnameSuffix: (hostnameSuffix: string) => void;
   setIslandURI: (islandURI: string) => void;
@@ -55,6 +59,7 @@ type DispatchAction = {
 const DEFAULT_STATE: State = {
   botIdentifier: '',
   botSchema: '',
+  deltaToken: '',
   environmentID: '',
   hostnameSuffix: 'api.powerplatform.com',
   islandURI: 'https://pvaruntime.us-il102.gateway.prod.island.powerapps.com',
@@ -62,6 +67,10 @@ const DEFAULT_STATE: State = {
   transport: 'rest',
   type: 'prebuilt bot'
 };
+
+import { pathToRegexp } from 'path-to-regexp';
+
+const TEST_CANVAS_REG_EXP = pathToRegexp('/environments/:environmentId/bots/:botId/test/conversations');
 
 export default function useAppReducer(): readonly [State, Readonly<DispatchAction>] {
   const reducer = useCallback((state: State, action: Action) => {
@@ -77,6 +86,10 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
       if (state.botSchema !== action.payload) {
         state = { ...state, botSchema: action.payload };
       }
+    } else if (action.type === 'SET_DELTA_TOKEN') {
+      if (state.deltaToken !== action.payload) {
+        state = { ...state, deltaToken: action.payload };
+      }
     } else if (action.type === 'SET_ENVIRONMENT_ID') {
       if (state.environmentID !== action.payload) {
         state = { ...state, environmentID: action.payload };
@@ -86,12 +99,38 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
         state = { ...state, hostnameSuffix: action.payload };
       }
     } else if (action.type === 'SET_ISLAND_URI') {
-      if (state.islandURI !== action.payload) {
-        state = { ...state, islandURI: action.payload };
+      const { payload } = action;
+
+      if (state.islandURI !== payload) {
+        state = { ...state, islandURI: payload };
+
+        if (state.type === 'test canvas bot') {
+          try {
+            const url = new URL(payload);
+            const match = TEST_CANVAS_REG_EXP.exec(url.pathname);
+
+            if (match) {
+              state = {
+                ...state,
+                botIdentifier: match[2],
+                environmentID: match[1],
+                islandURI: `${url.protocol}//${url.host}`
+              };
+            }
+          } catch {
+            // Intentionally left blank.
+          }
+        }
       }
     } else if (action.type === 'SET_TOKEN') {
-      if (state.token !== action.payload) {
-        state = { ...state, token: action.payload };
+      let { payload } = action;
+
+      if (payload.startsWith('Bearer ')) {
+        payload = payload.slice(7);
+      }
+
+      if (state.token !== payload) {
+        state = { ...state, token: payload };
       }
     } else if (action.type === 'SET_TRANSPORT') {
       if (state.token !== action.payload) {
@@ -124,6 +163,11 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
 
   const setBotSchema = useCallback(
     (botSchema: string) => dispatch({ payload: botSchema, type: 'SET_BOT_SCHEMA' }),
+    [dispatch]
+  );
+
+  const setDeltaToken = useCallback(
+    (deltaToken: string) => dispatch({ payload: deltaToken, type: 'SET_DELTA_TOKEN' }),
     [dispatch]
   );
 
@@ -165,6 +209,7 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
         saveToSessionStorage,
         setBotIdentifier,
         setBotSchema,
+        setDeltaToken,
         setEnvironmentID,
         setHostnameSuffix,
         setIslandURI,
@@ -172,7 +217,16 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
         setTransport,
         setType
       }),
-    [setBotIdentifier, setBotSchema, setEnvironmentID, setHostnameSuffix, setToken, setTransport, setType]
+    [
+      setBotIdentifier,
+      setBotSchema,
+      setDeltaToken,
+      setEnvironmentID,
+      setHostnameSuffix,
+      setToken,
+      setTransport,
+      setType
+    ]
   );
 
   return Object.freeze([state, dispatchActions]);

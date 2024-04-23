@@ -12,6 +12,7 @@ import WebChatViaTestCanvasBot from './WebChatViaTestCanvasBot';
 type SubmittedCredential = {
   botIdentifier: string;
   botSchema: string;
+  deltaToken: string;
   environmentID: string;
   hostnameSuffix: string;
   key: number;
@@ -26,12 +27,13 @@ type CredentialFormChangeCallback = Exclude<PropsOf<typeof CredentialForm>['onCh
 
 export default memo(function App() {
   const [
-    { botIdentifier, botSchema, environmentID, hostnameSuffix, islandURI, token, transport, type },
+    { botIdentifier, botSchema, deltaToken, environmentID, hostnameSuffix, islandURI, token, transport, type },
     {
       reset,
       saveToSessionStorage,
       setBotIdentifier,
       setBotSchema,
+      setDeltaToken,
       setEnvironmentID,
       setHostnameSuffix,
       setIslandURI,
@@ -43,6 +45,7 @@ export default memo(function App() {
   const [submittedCredential, setSubmittedCredential] = useState<SubmittedCredential | undefined>();
   const botIdentifierRef = useRefFrom(botIdentifier);
   const botSchemaRef = useRefFrom(botSchema);
+  const deltaTokenRef = useRefFrom(deltaToken);
   const environmentIDRef = useRefFrom(environmentID);
   const hostnameSuffixRef = useRefFrom(hostnameSuffix);
   const islandURIRef = useRefFrom(islandURI);
@@ -51,9 +54,10 @@ export default memo(function App() {
   const typeRef = useRefFrom(type);
 
   const handleCredentialFormChange = useCallback<CredentialFormChangeCallback>(
-    ({ botIdentifier, botSchema, environmentID, hostnameSuffix, islandURI, token, transport, type }) => {
+    ({ botIdentifier, botSchema, deltaToken, environmentID, hostnameSuffix, islandURI, token, transport, type }) => {
       setBotIdentifier(botIdentifier);
       setBotSchema(botSchema);
+      setDeltaToken(deltaToken);
       setEnvironmentID(environmentID);
       setHostnameSuffix(hostnameSuffix);
       setIslandURI(islandURI);
@@ -67,6 +71,7 @@ export default memo(function App() {
       saveToSessionStorage,
       setBotIdentifier,
       setBotSchema,
+      setDeltaToken,
       setEnvironmentID,
       setHostnameSuffix,
       setIslandURI,
@@ -83,6 +88,7 @@ export default memo(function App() {
       setSubmittedCredential({
         botIdentifier: botIdentifierRef.current,
         botSchema: botSchemaRef.current,
+        deltaToken: deltaTokenRef.current,
         environmentID: environmentIDRef.current,
         hostnameSuffix: hostnameSuffixRef.current,
         islandURI: islandURIRef.current,
@@ -91,7 +97,16 @@ export default memo(function App() {
         transport: transportRef.current || 'rest',
         type: typeRef.current
       }),
-    [botIdentifierRef, environmentIDRef, hostnameSuffixRef, setSubmittedCredential, transportRef, tokenRef]
+    [
+      botIdentifierRef,
+      botSchemaRef,
+      deltaTokenRef,
+      environmentIDRef,
+      hostnameSuffixRef,
+      setSubmittedCredential,
+      transportRef,
+      tokenRef
+    ]
   );
 
   return (
@@ -102,6 +117,7 @@ export default memo(function App() {
         autoFocus={!!(botIdentifier && environmentID && token)}
         botIdentifier={botIdentifier}
         botSchema={botSchema}
+        deltaToken={deltaToken}
         environmentID={environmentID}
         hostnameSuffix={hostnameSuffix}
         islandURI={islandURI}
@@ -128,6 +144,7 @@ export default memo(function App() {
           ? submittedCredential.islandURI && (
               <WebChatViaTestCanvasBot
                 botId={submittedCredential.botIdentifier}
+                deltaToken={submittedCredential.deltaToken}
                 environmentId={submittedCredential.environmentID}
                 islandURI={submittedCredential.islandURI}
                 key={submittedCredential.key}

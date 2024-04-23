@@ -11,12 +11,14 @@ type Props = {
   autoFocus?: boolean;
   botIdentifier?: string;
   botSchema?: string;
+  deltaToken?: string;
   environmentID?: string;
   hostnameSuffix?: string;
   islandURI?: string;
   onChange?: (nextCredential: {
     botIdentifier: string;
     botSchema: string;
+    deltaToken: string;
     environmentID: string;
     hostnameSuffix: string;
     islandURI: string;
@@ -35,6 +37,7 @@ export default memo(function CredentialForm({
   autoFocus,
   botIdentifier,
   botSchema,
+  deltaToken,
   environmentID,
   hostnameSuffix,
   islandURI,
@@ -47,6 +50,7 @@ export default memo(function CredentialForm({
 }: Props) {
   const botIdentifierRef = useRefFrom(botIdentifier);
   const botSchemaRef = useRefFrom(botSchema);
+  const deltaTokenRef = useRefFrom(deltaToken);
   const environmentIDRef = useRefFrom(environmentID);
   const hostnameSuffixRef = useRefFrom(hostnameSuffix);
   const islandURIRef = useRefFrom(islandURI);
@@ -61,6 +65,7 @@ export default memo(function CredentialForm({
     (overrides: {
       botIdentifier?: string;
       botSchema?: string;
+      deltaToken?: string;
       environmentID?: string;
       hostnameSuffix?: string;
       islandURI?: string;
@@ -76,6 +81,7 @@ export default memo(function CredentialForm({
       onChangeRef.current?.({
         botIdentifier: botIdentifierRef.current || '',
         botSchema: botSchemaRef.current || '',
+        deltaToken: deltaTokenRef.current || '',
         environmentID: environmentIDRef.current || '',
         hostnameSuffix: hostnameSuffixRef.current || '',
         islandURI: islandURIRef.current || '',
@@ -85,7 +91,7 @@ export default memo(function CredentialForm({
         ...overrides
       });
     },
-    [botIdentifierRef, botSchemaRef, environmentIDRef, hostnameSuffix, islandURI, tokenRef, typeRef]
+    [botIdentifierRef, botSchemaRef, deltaTokenRef, environmentIDRef, hostnameSuffix, islandURI, tokenRef, typeRef]
   );
 
   const handleBotIdentifierChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
@@ -96,6 +102,11 @@ export default memo(function CredentialForm({
   const handleBotSchemaChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
     ({ currentTarget }) => dispatchChange({ botSchema: currentTarget.value }),
     [environmentIDRef, onChangeRef, tokenRef]
+  );
+
+  const handleDeltaTokenChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
+    ({ currentTarget }) => dispatchChange({ deltaToken: currentTarget.value }),
+    [dispatchChange]
   );
 
   const handleEnvironmentIDChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
@@ -274,6 +285,14 @@ export default memo(function CredentialForm({
             />
           </dd>
         </label>
+        {type === 'test canvas bot' && (
+          <label>
+            <dt>Delta token</dt>
+            <dd>
+              <input autoComplete="off" onChange={handleDeltaTokenChange} type="password" value={deltaToken || ''} />
+            </dd>
+          </label>
+        )}
       </dl>
       <button autoFocus={autoFocus} type="submit">
         Create Web Chat
