@@ -82,7 +82,8 @@ jobs:
 
             echo ::group::$path
 
-            npm pack --json --pack-destination=.tmp/tarball/ --workspace=$name > .tmp/pack-result.json
+            # Note: --silent will not print prepack messages and only JSON output
+            npm pack --json --pack-destination=.tmp/tarball/ --silent --workspace=$name > .tmp/pack-result.json
 
             # Prints "npm pack" result.
             cat .tmp/pack-result.json | jq 'map(del(.files))'
