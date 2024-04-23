@@ -227,17 +227,25 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
         .pipeThrough(new EventSourceParserStream())
         .pipeThrough(
           new TransformStream<ParsedEvent, Activity>({
-            transform: ({ data }, controller) => {
-              if (data === '[DONE]') {
+            transform: ({ data, event }, controller) => {
+              if (event === 'end') {
                 controller.terminate();
-              } else {
-                const botResponse = parseBotResponse(JSON.parse(data));
+              } else if (event === 'activity') {
+                const activity = JSON.parse(data);
 
-                if (!this.#conversationId && botResponse.conversationId) {
-                  this.#conversationId = botResponse.conversationId;
+                if (!this.#conversationId) {
+                  this.#conversationId = activity.conversation.id;
                 }
 
-                botResponse.activities.map(controller.enqueue.bind(controller));
+                controller.enqueue(activity);
+                // } else {
+                //   const botResponse = parseBotResponse(JSON.parse(data));
+
+                //   if (!this.#conversationId && botResponse.conversationId) {
+                //     this.#conversationId = botResponse.conversationId;
+                //   }
+
+                //   botResponse.activities.map(controller.enqueue.bind(controller));
               }
             }
           })
