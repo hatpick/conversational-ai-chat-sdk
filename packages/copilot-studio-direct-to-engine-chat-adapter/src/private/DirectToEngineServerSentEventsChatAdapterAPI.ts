@@ -182,7 +182,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
 
         const contentType = currentResponse.headers.get('content-type');
 
-        if (contentType !== 'text/event-stream') {
+        if (!/^text\/event\-stream(;|$)/.test(contentType || '')) {
           throw new Error(
             `Server did not respond with content type of "text/event-stream", instead, received "${contentType}".`
           );
