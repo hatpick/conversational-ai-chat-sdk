@@ -1,5 +1,5 @@
 import type ReactWebChat from 'botframework-webchat';
-import React, { useEffect, useState, type ComponentType } from 'react';
+import React, { useEffect, useRef, type ComponentType } from 'react';
 
 type PropsOf<T> = T extends ComponentType<infer P> ? P : never;
 type Props = PropsOf<typeof ReactWebChat>;
@@ -23,24 +23,28 @@ async function loadWebChatJS(): Promise<void> {
 }
 
 const ReactWebChatShim = (props: Props) => {
-  const [loaded, setLoaded] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const abortController = new AbortController();
 
     (async function () {
-      await (loadWebChatJSPromise || (loadWebChatJSPromise = loadWebChatJS()));
+      if (!('WebChat' in window)) {
+        await (loadWebChatJSPromise || (loadWebChatJSPromise = loadWebChatJS()));
+      }
 
-      abortController.signal.aborted || setLoaded(true);
+      if (abortController.signal.aborted) {
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any)['WebChat'].renderWebChat(props, ref.current);
     })();
 
     return () => abortController.abort();
-  }, []);
+  }, [props]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ReactWebChat = loaded && (window as any)['WebChat'].ReactWebChat;
-
-  return ReactWebChat && <ReactWebChat {...props} />;
+  return <div ref={ref} style={{ display: 'contents' }} />;
 };
 
 export default ReactWebChatShim;
