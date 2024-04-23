@@ -29,7 +29,7 @@ env:
   node-version: lts/Iron
   pull_request_branch: ${{ format('bot/bump-after-release/{0}', github.run_number) }}
   release_branch: ${{ format('bot/release/production/{0}', github.run_number) }}
-  skip-secure-feed: false
+  skip-secure-feed: true # Terrapin is sunsetting
 
 # Disable all permissions and explicitly specific in the job.
 permissions: {}

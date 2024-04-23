@@ -19,7 +19,7 @@ env:
   branch: ${{ format('bot/release/{0}/{1}', github.ref_name, github.run_number) }}
   dry-run: false
   node-version: lts/Iron # Node.js 20
-  skip-secure-feed: false
+  skip-secure-feed: true # Terrapin is sunsetting
 
 # Disable all permissions and explicitly specific in the job.
 permissions: {}
