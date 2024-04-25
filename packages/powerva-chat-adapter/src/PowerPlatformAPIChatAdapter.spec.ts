@@ -63,9 +63,10 @@ describe('client with telemetry', () => {
 
   describe('when startNewConversation() is called', () => {
     beforeEach(() => {
+      // TODO: [P0] This won't work on Node.js 20 because "fetch" is read only property.
       (globalThis.fetch as MockedFetch).mockImplementation(() => Promise.resolve(new Response('{}', { status: 200 })));
 
-      client.startNewConversation(true, { signal: abortController.signal });
+      client.startNewConversation(true, { locale: 'zh-HAnt-HK', signal: abortController.signal });
     });
 
     test('fetch should be called once', () => expect(globalThis.fetch).toBeCalledTimes(1));
@@ -83,6 +84,7 @@ describe('client with telemetry', () => {
     test('fetch should be called with body', () =>
       expect(JSON.parse((globalThis.fetch as MockedFetch).mock.calls[0][1]?.body as string)).toEqual({
         emitStartConversationEvent: true,
+        locale: 'zh-HAnt-HK',
         test: 'dummy'
       }));
   });

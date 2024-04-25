@@ -2,14 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  */
 
-import { ExecuteTurnContinuationAction, type TelemetryClient } from 'powerva-turn-based-chat-adapter-framework';
 import pRetry from 'p-retry';
+import { ExecuteTurnContinuationAction, type TelemetryClient } from 'powerva-turn-based-chat-adapter-framework';
 
-import type { ExecuteTurnResponse } from './types/private/ExecuteTurnResponse';
-import type { StartResponse } from './types/private/StartResponse';
+import type { Activity } from 'botframework-directlinejs';
 import type { TurnBasedChatAdapterAPI } from './types/TurnBasedChatAdapterAPI';
 import type { TurnBasedChatAdapterAPIStrategy } from './types/TurnBasedChatAdapterAPIStrategy';
-import type { Activity } from 'botframework-directlinejs';
+import type { ExecuteTurnResponse } from './types/private/ExecuteTurnResponse';
+import type { StartResponse } from './types/private/StartResponse';
 
 type Init = { telemetry?: LimitedTelemetryClient };
 type LimitedTelemetryClient = Pick<TelemetryClient, 'trackException'>;
@@ -56,12 +56,12 @@ export default class PowerPlatformAPIChatAdapter implements TurnBasedChatAdapter
 
   public async startNewConversation(
     emitStartConversationEvent: boolean,
-    { signal }: { signal?: AbortSignal }
+    { locale, signal }: { locale?: string; signal?: AbortSignal }
   ): Promise<StartResponse> {
     const { baseURL, body, headers } = await this.#strategy.prepareStartNewConversation();
 
     const response = await this.post<StartResponse>(resolveURLWithQueryAndHash('conversations', baseURL), {
-      body: { ...body, emitStartConversationEvent },
+      body: { ...body, emitStartConversationEvent, ...(locale ? { locale } : {}) },
       headers,
       signal
     });

@@ -20,7 +20,7 @@ type StartConversationCallback = ConstructorParameters<typeof TurnBasedChatAdapt
  */
 export default function fromTurnBasedChatAdapterAPI(
   api: TurnBasedChatAdapterAPI,
-  { emitStartConversationEvent = true }: TurnBasedChatAdapterOptions = {}
+  { emitStartConversationEvent = true, locale }: TurnBasedChatAdapterOptions = {}
 ): ChatAdapter {
   let iterating = false;
   let nextSequenceID = 0;
@@ -69,7 +69,7 @@ export default function fromTurnBasedChatAdapterAPI(
   };
 
   const startConversation: StartConversationCallback = async ({ signal }) => {
-    const options = { signal };
+    const options = { locale, signal };
 
     const {
       action: startNewConversationAction,

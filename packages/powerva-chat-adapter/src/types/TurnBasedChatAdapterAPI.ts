@@ -19,5 +19,6 @@ export interface TurnBasedChatAdapterAPI {
 }
 
 export interface TurnBasedChatAdapterOptions {
-  emitStartConversationEvent?: boolean;
+  emitStartConversationEvent?: boolean | undefined;
+  locale?: string | undefined;
 }
