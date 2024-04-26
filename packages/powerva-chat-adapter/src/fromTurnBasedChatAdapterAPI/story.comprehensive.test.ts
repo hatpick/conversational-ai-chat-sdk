@@ -4,11 +4,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  */
 
-import { type Activity, ConnectionStatus } from 'botframework-directlinejs';
+import { ConnectionStatus, type Activity } from 'botframework-directlinejs';
 // TODO: When Jest support named export, we should shorten the path.
+import { waitFor } from '@testing-library/dom';
 import { MockObserver } from 'powerva-chat-adapter-test-util';
 import { DeferredPromise, ExecuteTurnContinuationAction } from 'powerva-turn-based-chat-adapter-framework';
-import { waitFor } from '@testing-library/dom';
 
 import fromTurnBasedChatAdapterAPI from '../../src/fromTurnBasedChatAdapterAPI';
 
@@ -21,8 +21,8 @@ test('fromTurnBasedChatAdapterAPI should work', async () => {
     mock: { continueTurn, executeTurn, startNewConversation }
   } = mockAPI();
 
-  // GIVEN: A chat adapter using ConversationTestApi.
-  const adapter = fromTurnBasedChatAdapterAPI(api);
+  // GIVEN: A chat adapter using ConversationTestApi with a locale.
+  const adapter = fromTurnBasedChatAdapterAPI(api, { locale: 'zh-HAnt-HK' });
 
   // ---
 
@@ -59,7 +59,7 @@ test('fromTurnBasedChatAdapterAPI should work', async () => {
     expect(startNewConversation).toHaveBeenNthCalledWith(
       1,
       true,
-      expect.objectContaining({ signal: expect.any(AbortSignal) })
+      expect.objectContaining({ locale: 'zh-HAnt-HK', signal: expect.any(AbortSignal) })
     )
   );
 
