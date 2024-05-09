@@ -16,14 +16,14 @@ afterAll(() => server.close());
 const strategy: HalfDuplexChatAdapterAPIStrategy = {
   async prepareExecuteTurn() {
     return Promise.resolve({
-      baseURL: new URL('http://test/'),
+      baseURL: new URL('http://test/?api=execute#2'),
       body: { dummy: 'dummy' },
       headers: new Headers({ 'x-dummy': 'dummy' })
     });
   },
   async prepareStartNewConversation() {
     return Promise.resolve({
-      baseURL: new URL('http://test/'),
+      baseURL: new URL('http://test/?api=start#1'),
       body: { dummy: 'dummy' },
       headers: new Headers({ 'x-dummy': 'dummy' })
     });
@@ -76,8 +76,14 @@ describe.each([true, false])('With emitStartConversationEvent set to %s', emitSt
         firstResult = await startNewConversationResult.next();
       });
 
-      describe('should have POST to /conversations', () => {
+      describe('should have POST to /conversations?api=start', () => {
         test('once', () => expect(postConversations).toHaveBeenCalledTimes(1));
+
+        test('with query "api" of "start"', () =>
+          expect(new URL(postConversations.mock.calls[0][0].request.url).searchParams.get('api')).toBe('start'));
+
+        test('with hash of "#1"', () =>
+          expect(new URL(postConversations.mock.calls[0][0].request.url).hash).toBe('#1'));
 
         test('with header "Content-Type" of "application/json"', () =>
           expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
@@ -122,6 +128,12 @@ describe.each([true, false])('With emitStartConversationEvent set to %s', emitSt
 
         describe('should have POST to /conversations/c-00001', () => {
           test('once', () => expect(postContinue).toHaveBeenCalledTimes(1));
+
+          test('with query "api" of "start"', () =>
+            expect(new URL(postContinue.mock.calls[0][0].request.url).searchParams.get('api')).toBe('start'));
+
+          test('with hash of "#1"', () =>
+            expect(new URL(postConversations.mock.calls[0][0].request.url).hash).toBe('#1'));
 
           test('with header "Content-Type" of "application/json"', () =>
             expect(postContinue.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));

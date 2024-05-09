@@ -31,7 +31,7 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using %s', 
       const strategy: HalfDuplexChatAdapterAPIStrategy = {
         async prepareExecuteTurn() {
           return Promise.resolve({
-            baseURL: new URL('http://test/'),
+            baseURL: new URL('http://test/?api=execute#2'),
             body: { dummy: 'dummy' },
             headers: new Headers({ 'x-dummy': 'dummy' }),
             transport
@@ -39,7 +39,7 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using %s', 
         },
         async prepareStartNewConversation() {
           return Promise.resolve({
-            baseURL: new URL('http://test/'),
+            baseURL: new URL('http://test/?api=start#1'),
             body: { dummy: 'dummy' },
             headers: new Headers({ 'x-dummy': 'dummy' }),
             transport
@@ -64,6 +64,12 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using %s', 
         test(numCalled === 1 ? 'once' : `${numCalled} times`, () =>
           expect(postConversations).toHaveBeenCalledTimes(numCalled)
         );
+
+        test('with query "api" of "start"', () =>
+          expect(new URL(postConversations.mock.calls[0][0].request.url).searchParams.get('api')).toBe('start'));
+
+        test('with hash of "#1"', () =>
+          expect(new URL(postConversations.mock.calls[0][0].request.url).hash).toBe('#1'));
 
         test('with header "Content-Type" of "application/json"', () =>
           expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));

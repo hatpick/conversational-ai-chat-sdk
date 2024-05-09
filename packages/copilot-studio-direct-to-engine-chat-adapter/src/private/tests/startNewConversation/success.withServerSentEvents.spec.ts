@@ -15,7 +15,7 @@ afterAll(() => server.close());
 const strategy: HalfDuplexChatAdapterAPIStrategy = {
   async prepareExecuteTurn() {
     return Promise.resolve({
-      baseURL: new URL('http://test/'),
+      baseURL: new URL('http://test/?api=execute#2'),
       body: { dummy: 'dummy' },
       headers: new Headers({ 'x-dummy': 'dummy' }),
       transport: 'server sent events'
@@ -23,7 +23,7 @@ const strategy: HalfDuplexChatAdapterAPIStrategy = {
   },
   async prepareStartNewConversation() {
     return Promise.resolve({
-      baseURL: new URL('http://test/'),
+      baseURL: new URL('http://test/?api=start#1'),
       body: { dummy: 'dummy' },
       headers: new Headers({ 'x-dummy': 'dummy' }),
       transport: 'server sent events'
@@ -74,6 +74,12 @@ data: end
 
       describe('should have POST to /conversations', () => {
         test('once', () => expect(postConversations).toHaveBeenCalledTimes(1));
+
+        test('with query "api" of "start"', () =>
+          expect(new URL(postConversations.mock.calls[0][0].request.url).searchParams.get('api')).toBe('start'));
+
+        test('with hash of "#1"', () =>
+          expect(new URL(postConversations.mock.calls[0][0].request.url).hash).toBe('#1'));
 
         test('with header "Accept" of "text/event-stream"', () =>
           expect(postConversations.mock.calls[0][0].request.headers.get('accept')).toBe('text/event-stream'));
