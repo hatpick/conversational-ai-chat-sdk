@@ -31,16 +31,17 @@ const strategy: HalfDuplexChatAdapterAPIStrategy = {
   }
 };
 
-describe('When conversation started and bot returned with 2 activities in 2 turn', () => {
-  let adapter: DirectToEngineServerSentEventsChatAdapterAPI;
-  let postConversations: JestMockOf<DefaultHttpResponseResolver>;
-  let startNewConversationResult: ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['startNewConversation']>;
+describe.each([true, false])('With emitStartConversationEvent set to %s', emitStartConversationEvent => {
+  describe('When conversation started and bot returned with 2 activities in 2 turn', () => {
+    let adapter: DirectToEngineServerSentEventsChatAdapterAPI;
+    let postConversations: JestMockOf<DefaultHttpResponseResolver>;
+    let startNewConversationResult: ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['startNewConversation']>;
 
-  beforeEach(() => {
-    postConversations = jest.fn<ReturnType<DefaultHttpResponseResolver>, Parameters<DefaultHttpResponseResolver>>(
-      () =>
-        new HttpResponse(
-          Buffer.from(`event: activity
+    beforeEach(() => {
+      postConversations = jest.fn<ReturnType<DefaultHttpResponseResolver>, Parameters<DefaultHttpResponseResolver>>(
+        () =>
+          new HttpResponse(
+            Buffer.from(`event: activity
 data: { "conversation": { "id": "c-00001" }, "text": "Hello, World!", "type": "message" }
 
 event: activity
@@ -50,78 +51,79 @@ event: end
 data: end
 
 `),
-          { headers: { 'content-type': 'text/event-stream' } }
-        )
-    );
+            { headers: { 'content-type': 'text/event-stream' } }
+          )
+      );
 
-    server.use(http.post('http://test/conversations/', postConversations));
+      server.use(http.post('http://test/conversations/', postConversations));
 
-    adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy);
-    startNewConversationResult = adapter.startNewConversation(true);
-  });
-
-  test('should not POST to /conversations', () => expect(postConversations).toHaveBeenCalledTimes(0));
-
-  test('"conversationId" getter should return undefined', () => expect(adapter.conversationId).toBeUndefined());
-
-  describe('after iterate once', () => {
-    let firstResult: IteratorResult<Activity>;
-
-    beforeEach(async () => {
-      firstResult = await startNewConversationResult.next();
+      adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy);
+      startNewConversationResult = adapter.startNewConversation(emitStartConversationEvent);
     });
 
-    describe('should have POST to /conversations', () => {
-      test('once', () => expect(postConversations).toHaveBeenCalledTimes(1));
+    test('should not POST to /conversations', () => expect(postConversations).toHaveBeenCalledTimes(0));
 
-      test('with header "Accept" of "text/event-stream"', () =>
-        expect(postConversations.mock.calls[0][0].request.headers.get('accept')).toBe('text/event-stream'));
+    test('"conversationId" getter should return undefined', () => expect(adapter.conversationId).toBeUndefined());
 
-      test('with header "Content-Type" of "application/json"', () =>
-        expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
-
-      test('with header "x-dummy" of "dummy"', () =>
-        expect(postConversations.mock.calls[0][0].request.headers.get('x-dummy')).toBe('dummy'));
-
-      test('without header "x-ms-conversationid"', () =>
-        expect(postConversations.mock.calls[0][0].request.headers.has('x-ms-conversationid')).toBe(false));
-
-      test('with { dummy: "dummy", emitStartConversationEvent: true }', () =>
-        expect(postConversations.mock.calls[0][0].request.json()).resolves.toEqual({
-          dummy: 'dummy',
-          emitStartConversationEvent: true
-        }));
-    });
-
-    test('should return first activity', () =>
-      expect(firstResult).toEqual({
-        done: false,
-        value: { conversation: { id: 'c-00001' }, text: 'Hello, World!', type: 'message' }
-      }));
-
-    test('"conversationId" getter should return "c-00001"', () => expect(adapter.conversationId).toBe('c-00001'));
-
-    describe('after iterate twice', () => {
-      let secondResult: IteratorResult<Activity>;
+    describe('after iterate once', () => {
+      let firstResult: IteratorResult<Activity>;
 
       beforeEach(async () => {
-        secondResult = await startNewConversationResult.next();
+        firstResult = await startNewConversationResult.next();
       });
 
-      test('should return second activity', () =>
-        expect(secondResult).toEqual({
+      describe('should have POST to /conversations', () => {
+        test('once', () => expect(postConversations).toHaveBeenCalledTimes(1));
+
+        test('with header "Accept" of "text/event-stream"', () =>
+          expect(postConversations.mock.calls[0][0].request.headers.get('accept')).toBe('text/event-stream'));
+
+        test('with header "Content-Type" of "application/json"', () =>
+          expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
+
+        test('with header "x-dummy" of "dummy"', () =>
+          expect(postConversations.mock.calls[0][0].request.headers.get('x-dummy')).toBe('dummy'));
+
+        test('without header "x-ms-conversationid"', () =>
+          expect(postConversations.mock.calls[0][0].request.headers.has('x-ms-conversationid')).toBe(false));
+
+        test(`with { dummy: "dummy", emitStartConversationEvent: ${emitStartConversationEvent} }`, () =>
+          expect(postConversations.mock.calls[0][0].request.json()).resolves.toEqual({
+            dummy: 'dummy',
+            emitStartConversationEvent
+          }));
+      });
+
+      test('should return first activity', () =>
+        expect(firstResult).toEqual({
           done: false,
-          value: { conversation: { id: 'c-00001' }, text: 'Aloha!', type: 'message' }
+          value: { conversation: { id: 'c-00001' }, text: 'Hello, World!', type: 'message' }
         }));
 
-      describe('after iterate the third time', () => {
-        let thirdResult: IteratorResult<Activity>;
+      test('"conversationId" getter should return "c-00001"', () => expect(adapter.conversationId).toBe('c-00001'));
+
+      describe('after iterate twice', () => {
+        let secondResult: IteratorResult<Activity>;
 
         beforeEach(async () => {
-          thirdResult = await startNewConversationResult.next();
+          secondResult = await startNewConversationResult.next();
         });
 
-        test('should complete', () => expect(thirdResult).toEqual({ done: true, value: undefined }));
+        test('should return second activity', () =>
+          expect(secondResult).toEqual({
+            done: false,
+            value: { conversation: { id: 'c-00001' }, text: 'Aloha!', type: 'message' }
+          }));
+
+        describe('after iterate the third time', () => {
+          let thirdResult: IteratorResult<Activity>;
+
+          beforeEach(async () => {
+            thirdResult = await startNewConversationResult.next();
+          });
+
+          test('should complete', () => expect(thirdResult).toEqual({ done: true, value: undefined }));
+        });
       });
     });
   });
