@@ -91,7 +91,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
       for (let numTurn = 0; numTurn < MAX_TURN; numTurn++) {
         let currentResponse: Response;
 
-        const initialPromise = pRetry(
+        const botResponsePromise = pRetry(
           async (): Promise<BotResponse> => {
             const url = resolveURLWithQueryAndHash(`conversations/${this.#conversationId || ''}`, baseURL);
 
@@ -124,7 +124,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
         const telemetry = this.#telemetry;
 
         telemetry &&
-          initialPromise.catch((error: unknown) => {
+          botResponsePromise.catch((error: unknown) => {
             // TODO [hawo]: We should rework on this telemetry for a couple of reasons:
             //              1. We did not handle it, why call it "handledAt"?
             //              2. We should indicate this error is related to the protocol
@@ -138,7 +138,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
               );
           });
 
-        const botResponse = await initialPromise;
+        const botResponse = await botResponsePromise;
 
         if (botResponse.conversationId) {
           this.#conversationId = botResponse.conversationId;
@@ -223,9 +223,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
             );
         });
 
-      const responseBody = await responseBodyPromise;
-
-      const readableStream = responseBody
+      const readableStream = (await responseBodyPromise)
         .pipeThrough(new TextDecoderStream())
         .pipeThrough(new EventSourceParserStream())
         .pipeThrough(
