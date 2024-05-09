@@ -6,9 +6,9 @@ import { type Transport } from '../../types/Transport';
 
 type PartialRequestInit = {
   baseURL: URL;
-  body?: Record<string, unknown>;
-  headers?: HeadersInit;
-  transport?: Transport;
+  body?: Record<string, unknown> | undefined;
+  headers?: Headers | undefined;
+  transport?: Transport | undefined;
 };
 
 export interface HalfDuplexChatAdapterAPIStrategy {

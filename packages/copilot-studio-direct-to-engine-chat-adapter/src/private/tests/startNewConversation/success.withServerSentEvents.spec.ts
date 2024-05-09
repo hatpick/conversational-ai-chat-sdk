@@ -14,10 +14,20 @@ afterAll(() => server.close());
 
 const strategy: HalfDuplexChatAdapterAPIStrategy = {
   async prepareExecuteTurn() {
-    return Promise.resolve({ baseURL: new URL('http://test/'), transport: 'server sent events' });
+    return Promise.resolve({
+      baseURL: new URL('http://test/'),
+      body: { dummy: 'dummy' },
+      headers: new Headers({ 'x-dummy': 'dummy' }),
+      transport: 'server sent events'
+    });
   },
   async prepareStartNewConversation() {
-    return Promise.resolve({ baseURL: new URL('http://test/'), transport: 'server sent events' });
+    return Promise.resolve({
+      baseURL: new URL('http://test/'),
+      body: { dummy: 'dummy' },
+      headers: new Headers({ 'x-dummy': 'dummy' }),
+      transport: 'server sent events'
+    });
   }
 };
 
@@ -68,11 +78,15 @@ data: end
       test('with header "Content-Type" of "application/json"', () =>
         expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
 
+      test('with header "x-dummy" of "dummy"', () =>
+        expect(postConversations.mock.calls[0][0].request.headers.get('x-dummy')).toBe('dummy'));
+
       test('without header "x-ms-conversationid"', () =>
         expect(postConversations.mock.calls[0][0].request.headers.has('x-ms-conversationid')).toBe(false));
 
-      test('with { emitStartConversationEvent: true }', () =>
+      test('with { dummy: "dummy", emitStartConversationEvent: true }', () =>
         expect(postConversations.mock.calls[0][0].request.json()).resolves.toEqual({
+          dummy: 'dummy',
           emitStartConversationEvent: true
         }));
     });

@@ -15,10 +15,18 @@ afterAll(() => server.close());
 
 const strategy: HalfDuplexChatAdapterAPIStrategy = {
   async prepareExecuteTurn() {
-    return Promise.resolve({ baseURL: new URL('http://test/') });
+    return Promise.resolve({
+      baseURL: new URL('http://test/'),
+      body: { dummy: 'dummy' },
+      headers: new Headers({ 'x-dummy': 'dummy' })
+    });
   },
   async prepareStartNewConversation() {
-    return Promise.resolve({ baseURL: new URL('http://test/') });
+    return Promise.resolve({
+      baseURL: new URL('http://test/'),
+      body: { dummy: 'dummy' },
+      headers: new Headers({ 'x-dummy': 'dummy' })
+    });
   }
 };
 
@@ -69,11 +77,15 @@ describe('When conversation started and bot returned with 2 activities in 2 turn
       test('with header "Content-Type" of "application/json"', () =>
         expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
 
+      test('with header "x-dummy" of "dummy"', () =>
+        expect(postConversations.mock.calls[0][0].request.headers.get('x-dummy')).toBe('dummy'));
+
       test('without header "x-ms-conversationid"', () =>
         expect(postConversations.mock.calls[0][0].request.headers.has('x-ms-conversationid')).toBe(false));
 
-      test('with JSON body of { emitStartConversationEvent: true }', () =>
+      test('with JSON body of { dummy: "dummy", emitStartConversationEvent: true }', () =>
         expect(postConversations.mock.calls[0][0].request.json()).resolves.toEqual({
+          dummy: 'dummy',
           emitStartConversationEvent: true
         }));
     });
@@ -107,10 +119,16 @@ describe('When conversation started and bot returned with 2 activities in 2 turn
         test('with header "Content-Type" of "application/json"', () =>
           expect(postContinue.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
 
+        test('with header "x-dummy" of "dummy"', () =>
+          expect(postConversations.mock.calls[0][0].request.headers.get('x-dummy')).toBe('dummy'));
+
         test('with header "x-ms-conversationid" of "c-00001"', () =>
           expect(postContinue.mock.calls[0][0].request.headers.get('x-ms-conversationid')).toBe('c-00001'));
 
-        test('with JSON body of {}', () => expect(postContinue.mock.calls[0][0].request.json()).resolves.toEqual({}));
+        test('with JSON body of { dummy: "dummy" }', () =>
+          expect(postContinue.mock.calls[0][0].request.json()).resolves.toEqual({
+            dummy: 'dummy'
+          }));
       });
 
       describe('after iterate the third time', () => {

@@ -30,6 +30,7 @@ type Init = {
 type MinimalTelemetryClient = Pick<TelemetryClient, 'trackException'>;
 
 const DEFAULT_RETRY_COUNT = 4; // Will call 5 times.
+const MAX_CONTINUE_TURN = 999;
 
 function resolveURLWithQueryAndHash(relativeURL: string, baseURL: URL): URL {
   const url = new URL(relativeURL, baseURL);
@@ -72,7 +73,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
     return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
       const { baseURL, body, headers, transport } = await this.#strategy.prepareStartNewConversation();
 
-      yield* this.#post(baseURL, { body: { ...body, emitStartConversationEvent }, headers, transport });
+      yield* this.#post(baseURL, { body, headers, initialBody: { emitStartConversationEvent }, transport });
     }.call(this);
   }
 
@@ -84,43 +85,60 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
 
       const { baseURL, body, headers, transport } = await this.#strategy.prepareExecuteTurn();
 
-      yield* this.#post(baseURL, { body: { ...body, activity }, headers, transport });
+      yield* this.#post(baseURL, { body, headers, initialBody: { activity }, transport });
     }.call(this);
   }
 
   #post(
     baseURL: URL,
-    { body, headers, transport }: { body?: Record<string, unknown>; headers?: HeadersInit; transport?: Transport }
+    {
+      body,
+      headers,
+      initialBody,
+      transport
+    }: {
+      body?: Record<string, unknown> | undefined;
+      headers?: Headers | undefined;
+      initialBody?: Record<string, unknown> | undefined;
+      transport?: Transport | undefined;
+    }
   ): AsyncIterableIterator<Activity> {
     if (transport === 'server sent events') {
-      return this.#postWithServerSentEvents(baseURL, { body, headers });
+      return this.#postWithServerSentEvents(baseURL, { body: { ...body, ...initialBody }, headers });
     }
 
-    return this.#postWithREST(baseURL, { body, headers });
+    return this.#postWithREST(baseURL, { body, headers, initialBody });
   }
 
   #postWithREST(
     baseURL: URL,
-    { body, headers }: { body?: Record<string, unknown>; headers?: HeadersInit }
+    {
+      body,
+      headers,
+      initialBody
+    }: {
+      body?: Record<string, unknown> | undefined;
+      headers?: Headers | undefined;
+      initialBody?: Record<string, unknown> | undefined;
+    }
   ): AsyncIterableIterator<Activity> {
     return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
-      const MAX_TURN = 1000;
-      let withBody = true;
+      let withInitialBody = true;
 
-      for (let numTurn = 0; numTurn < MAX_TURN; numTurn++) {
+      for (let numTurn = 0; numTurn < MAX_CONTINUE_TURN; numTurn++) {
         let currentResponse: Response;
 
         const botResponsePromise = pRetry(
           async (): Promise<BotResponse> => {
             const url = resolveURLWithQueryAndHash(`conversations/${this.#conversationId || ''}`, baseURL);
+            const requestHeaders = new Headers(headers);
+
+            this.#conversationId && requestHeaders.set('x-ms-conversationid', this.#conversationId);
+            requestHeaders.set('content-type', 'application/json');
 
             currentResponse = await fetch(url.toString(), {
-              body: JSON.stringify(withBody ? body : {}),
-              headers: {
-                ...headers,
-                ...(this.#conversationId ? { 'x-ms-conversationid': this.#conversationId } : {}),
-                'content-type': 'application/json'
-              },
+              body: JSON.stringify(withInitialBody ? { ...body, ...initialBody } : body),
+              headers: requestHeaders,
               method: 'POST'
             });
 
@@ -167,7 +185,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
           yield activity;
         }
 
-        withBody = false;
+        withInitialBody = false;
 
         if (botResponse.action !== 'continue') {
           break;
@@ -178,24 +196,31 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
 
   #postWithServerSentEvents(
     baseURL: URL,
-    { body, headers }: { body?: Record<string, unknown>; headers?: HeadersInit }
+    {
+      body,
+      headers
+    }: {
+      body?: Record<string, unknown> | undefined;
+      headers?: Headers | undefined;
+    }
   ): AsyncIterableIterator<Activity> {
     return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
       let currentResponse: Response;
 
       const responseBodyPromise = pRetry(
         async (): Promise<ReadableStream<Uint8Array>> => {
+          const requestHeaders = new Headers(headers);
+
+          this.#conversationId && requestHeaders.set('x-ms-conversationid', this.#conversationId);
+          requestHeaders.set('accept', 'text/event-stream');
+          requestHeaders.set('content-type', 'application/json');
+
           currentResponse = await fetch(
             resolveURLWithQueryAndHash(`conversations/${this.#conversationId || ''}`, baseURL),
             {
-              method: 'POST',
               body: JSON.stringify(body),
-              headers: {
-                ...headers,
-                ...(this.#conversationId ? { 'x-ms-conversationid': this.#conversationId } : {}),
-                accept: 'text/event-stream',
-                'content-type': 'application/json'
-              }
+              headers: requestHeaders,
+              method: 'POST'
             }
           );
 

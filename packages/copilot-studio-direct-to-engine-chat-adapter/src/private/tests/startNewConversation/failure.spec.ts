@@ -29,10 +29,22 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using %s', 
 
       const strategy: HalfDuplexChatAdapterAPIStrategy = {
         async prepareExecuteTurn() {
-          return Promise.resolve({ baseURL: new URL('http://test/'), transport });
+          // TODO: Add body/headers.
+          return Promise.resolve({
+            baseURL: new URL('http://test/'),
+            body: { dummy: 'dummy' },
+            headers: new Headers({ 'x-dummy': 'dummy' }),
+            transport
+          });
         },
         async prepareStartNewConversation() {
-          return Promise.resolve({ baseURL: new URL('http://test/'), transport });
+          // TODO: Add body/headers.
+          return Promise.resolve({
+            baseURL: new URL('http://test/'),
+            body: { dummy: 'dummy' },
+            headers: new Headers({ 'x-dummy': 'dummy' }),
+            transport
+          });
         }
       };
 
@@ -60,11 +72,15 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using %s', 
         test('with header "Content-Type" of "application/json"', () =>
           expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
 
+        test('with header "x-dummy" of "dummy"', () =>
+          expect(postConversations.mock.calls[0][0].request.headers.get('x-dummy')).toBe('dummy'));
+
         test('without header "x-ms-conversationid"', () =>
           expect(postConversations.mock.calls[0][0].request.headers.has('x-ms-conversationid')).toBe(false));
 
-        test('with JSON body of { emitStartConversationEvent: true }', () =>
+        test('with JSON body of { dummy: "dummy", emitStartConversationEvent: true }', () =>
           expect(postConversations.mock.calls[0][0].request.json()).resolves.toEqual({
+            dummy: 'dummy',
             emitStartConversationEvent: true
           }));
       });
