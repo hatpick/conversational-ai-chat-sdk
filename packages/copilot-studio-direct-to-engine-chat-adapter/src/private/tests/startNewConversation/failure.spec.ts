@@ -17,6 +17,7 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using %s', 
     ['server returned 400', new HttpResponse(undefined, { status: 400 }), { numCalled: 1 }],
     ['server returned 500', new HttpResponse(undefined, { status: 500 }), { numCalled: 5 }]
   ])('when conversation started and %s', (_, response, { numCalled }) => {
+    let adapter: DirectToEngineServerSentEventsChatAdapterAPI;
     let postConversations: JestMockOf<DefaultHttpResponseResolver>;
     let startNewConversationResult: ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['startNewConversation']>;
 
@@ -48,10 +49,7 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using %s', 
         }
       };
 
-      const adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy, {
-        retry: { factor: 1, minTimeout: 0 }
-      });
-
+      adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy, { retry: { factor: 1, minTimeout: 0 } });
       startNewConversationResult = adapter.startNewConversation(true);
     });
 
@@ -86,6 +84,8 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using %s', 
       });
 
       test('should reject', () => expect(iteratePromise).rejects.toThrow());
+
+      test('"conversationId" getter should return undefined', () => expect(adapter.conversationId).toBeUndefined());
     });
   });
 });
