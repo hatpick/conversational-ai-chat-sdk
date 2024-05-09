@@ -30,7 +30,6 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using %s', 
 
       const strategy: HalfDuplexChatAdapterAPIStrategy = {
         async prepareExecuteTurn() {
-          // TODO: Add body/headers.
           return Promise.resolve({
             baseURL: new URL('http://test/'),
             body: { dummy: 'dummy' },
@@ -39,7 +38,6 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using %s', 
           });
         },
         async prepareStartNewConversation() {
-          // TODO: Add body/headers.
           return Promise.resolve({
             baseURL: new URL('http://test/'),
             body: { dummy: 'dummy' },
