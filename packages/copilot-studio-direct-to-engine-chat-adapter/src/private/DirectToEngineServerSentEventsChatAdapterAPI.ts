@@ -14,12 +14,22 @@ import { type ConversationId } from './types/ConversationId';
 import { type HalfDuplexChatAdapterAPI } from './types/HalfDuplexChatAdapterAPI';
 import { type HalfDuplexChatAdapterAPIStrategy } from './types/HalfDuplexChatAdapterAPIStrategy';
 
+type RetryInit = Readonly<{
+  factor?: number | undefined;
+  minTimeout?: number | undefined;
+  maxTimeout?: number | undefined;
+  randomize?: boolean | undefined;
+  retries?: number | undefined;
+}>;
+
 type Init = {
+  retry?: RetryInit | undefined;
   telemetry?: MinimalTelemetryClient;
 };
+
 type MinimalTelemetryClient = Pick<TelemetryClient, 'trackException'>;
 
-const RETRY_COUNT = 4; // Will call 5 times.
+const DEFAULT_RETRY_COUNT = 4; // Will call 5 times.
 
 function resolveURLWithQueryAndHash(relativeURL: string, baseURL: URL): URL {
   const url = new URL(relativeURL, baseURL);
@@ -37,11 +47,20 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
   //        - Do not pass any arguments that is not able to be cloned by the Structured Clone Algorithm
   //        - After modifying this class, always test with a C1-hosted PVA Anywhere Bot
   constructor(strategy: HalfDuplexChatAdapterAPIStrategy, init?: Init) {
+    this.#retry = {
+      factor: init?.retry?.factor,
+      maxTimeout: init?.retry?.maxTimeout,
+      minTimeout: init?.retry?.minTimeout,
+      randomize: init?.retry?.randomize,
+      retries: init?.retry?.retries || DEFAULT_RETRY_COUNT
+    };
+
     this.#strategy = strategy;
     this.#telemetry = init?.telemetry;
   }
 
   #conversationId: ConversationId | undefined = undefined;
+  #retry: RetryInit & { retries: number };
   #strategy: HalfDuplexChatAdapterAPIStrategy;
   #telemetry: MinimalTelemetryClient | undefined;
 
@@ -112,12 +131,12 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
             return parseBotResponse(await currentResponse.json());
           },
           {
-            onFailedAttempt: (error: unknown) => {
-              if (currentResponse && currentResponse.status < 500) {
+            ...this.#retry,
+            onFailedAttempt(error: unknown) {
+              if (currentResponse?.status < 500) {
                 throw error;
               }
-            },
-            retries: RETRY_COUNT
+            }
           }
         );
 
@@ -133,7 +152,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
                 { error },
                 {
                   handledAt: 'withRetries',
-                  retryCount: RETRY_COUNT + 1 + ''
+                  retryCount: this.#retry.retries + 1 + ''
                 }
               );
           });
@@ -197,12 +216,12 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
           return currentResponse.body;
         },
         {
-          onFailedAttempt: (error: unknown) => {
-            if (currentResponse && currentResponse.status < 500) {
+          ...this.#retry,
+          onFailedAttempt(error: unknown) {
+            if (currentResponse?.status < 500) {
               throw error;
             }
-          },
-          retries: RETRY_COUNT
+          }
         }
       );
 
@@ -218,7 +237,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
               { error },
               {
                 handledAt: 'withRetries',
-                retryCount: RETRY_COUNT + 1 + ''
+                retryCount: this.#retry.retries + 1 + ''
               }
             );
         });

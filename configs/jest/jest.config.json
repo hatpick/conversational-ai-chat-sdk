@@ -7,5 +7,5 @@
       }
     ]
   },
-  "transformIgnorePatterns": ["/node_modules/(?!(p-retry|uuid)/)", "\\.pnp\\.[^\\/]+$"]
+  "transformIgnorePatterns": ["/node_modules/(?!(is-network-error|p-retry|uuid)/)", "\\.pnp\\.[^\\/]+$"]
 }
