@@ -84,7 +84,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
     baseURL: URL,
     { body, headers }: { body?: Record<string, unknown>; headers?: HeadersInit }
   ): Promise<AsyncIterableIterator<Activity>> {
-    const post = async (): Promise<AsyncIterableIterator<Activity>> => {
+    const post = async (withBody: boolean): Promise<AsyncIterableIterator<Activity>> => {
       let currentResponse: Response;
 
       const initialPromise = pRetry(
@@ -92,13 +92,13 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
           const url = resolveURLWithQueryAndHash(`conversations/${this.#conversationId || ''}`, baseURL);
 
           currentResponse = await fetch(url.toString(), {
-            method: 'POST',
-            body: JSON.stringify(body),
+            body: JSON.stringify(withBody ? body : {}),
             headers: {
               ...headers,
               ...(this.#conversationId ? { 'x-ms-conversationid': this.#conversationId } : {}),
               'content-type': 'application/json'
-            }
+            },
+            method: 'POST'
           });
 
           if (!currentResponse.ok) {
@@ -146,12 +146,12 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
         }
 
         if (botResponse.action === 'continue') {
-          yield* await post();
+          yield* await post(false);
         }
       })();
     };
 
-    return post();
+    return post(true);
   }
 
   async #postWithServerSentEvents(
@@ -182,7 +182,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
 
         const contentType = currentResponse.headers.get('content-type');
 
-        if (!/^text\/event\-stream(;|$)/.test(contentType || '')) {
+        if (!/^text\/event-stream(;|$)/.test(contentType || '')) {
           throw new Error(
             `Server did not respond with content type of "text/event-stream", instead, received "${contentType}".`
           );
