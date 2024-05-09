@@ -31,6 +31,7 @@ const strategy: HalfDuplexChatAdapterAPIStrategy = {
 };
 
 describe('When conversation started and bot returned with 2 activities in 2 turns', () => {
+  let adapter: DirectToEngineServerSentEventsChatAdapterAPI;
   let postContinue: JestMockOf<DefaultHttpResponseResolver>;
   let postConversations: JestMockOf<DefaultHttpResponseResolver>;
   let startNewConversationResult: ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['startNewConversation']>;
@@ -55,7 +56,7 @@ describe('When conversation started and bot returned with 2 activities in 2 turn
 
     server.use(http.post('http://test/conversations/c-00001', postContinue));
 
-    const adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy);
+    adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy);
 
     startNewConversationResult = adapter.startNewConversation(true);
   });
@@ -63,6 +64,8 @@ describe('When conversation started and bot returned with 2 activities in 2 turn
   describe('should not POST to /conversations', () => {
     test('once', () => expect(postConversations).toHaveBeenCalledTimes(0));
   });
+
+  test('"conversationId" getter should return undefined', () => expect(adapter.conversationId).toBeUndefined());
 
   describe('after iterate once', () => {
     let firstResult: IteratorResult<Activity>;
@@ -99,6 +102,8 @@ describe('When conversation started and bot returned with 2 activities in 2 turn
       }));
 
     test('should not POST to /conversations/c-00001', () => expect(postContinue).toHaveBeenCalledTimes(0));
+
+    test('"conversationId" getter should return "c-00001"', () => expect(adapter.conversationId).toBe('c-00001'));
 
     describe('after iterate twice', () => {
       let secondResult: IteratorResult<Activity>;
