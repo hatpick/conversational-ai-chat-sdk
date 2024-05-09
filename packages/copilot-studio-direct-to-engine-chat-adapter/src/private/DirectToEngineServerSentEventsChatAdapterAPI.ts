@@ -49,24 +49,24 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
     return this.#conversationId;
   }
 
-  public async startNewConversation(emitStartConversationEvent: boolean): Promise<AsyncIterableIterator<Activity>> {
-    const { baseURL, body, headers, transport } = await this.#strategy.prepareStartNewConversation();
+  public startNewConversation(emitStartConversationEvent: boolean): AsyncIterableIterator<Activity> {
+    return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
+      const { baseURL, body, headers, transport } = await this.#strategy.prepareStartNewConversation();
 
-    const response = await this.#post(baseURL, { body: { ...body, emitStartConversationEvent }, headers, transport });
-
-    return response;
+      yield* this.#post(baseURL, { body: { ...body, emitStartConversationEvent }, headers, transport });
+    }.call(this);
   }
 
-  public async executeTurn(activity: Activity): Promise<AsyncIterableIterator<Activity>> {
-    if (!this.#conversationId) {
-      throw new Error(`startNewConversation() must be called before executeTurn().`);
-    }
+  public executeTurn(activity: Activity): AsyncIterableIterator<Activity> {
+    return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
+      if (!this.#conversationId) {
+        throw new Error(`startNewConversation() must be called before executeTurn().`);
+      }
 
-    const { baseURL, body, headers, transport } = await this.#strategy.prepareExecuteTurn();
+      const { baseURL, body, headers, transport } = await this.#strategy.prepareExecuteTurn();
 
-    const response = await this.#post(baseURL, { body: { ...body, activity }, headers, transport });
-
-    return response;
+      yield* this.#post(baseURL, { body: { ...body, activity }, headers, transport });
+    }.call(this);
   }
 
   #post(

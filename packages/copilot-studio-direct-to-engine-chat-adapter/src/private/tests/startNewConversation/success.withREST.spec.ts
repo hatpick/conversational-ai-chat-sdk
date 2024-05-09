@@ -6,7 +6,6 @@ import type { BotResponse } from '../../types/BotResponse';
 import type { HalfDuplexChatAdapterAPIStrategy } from '../../types/HalfDuplexChatAdapterAPIStrategy';
 import type { DefaultHttpResponseResolver } from '../types/DefaultHttpResponseResolver';
 import type { JestMockOf } from '../types/JestMockOf';
-import type { ResultOfPromise } from '../types/ResultOfPromise';
 
 const server = setupServer();
 
@@ -16,21 +15,19 @@ afterAll(() => server.close());
 
 const strategy: HalfDuplexChatAdapterAPIStrategy = {
   async prepareExecuteTurn() {
-    return { baseURL: new URL('http://test/') };
+    return Promise.resolve({ baseURL: new URL('http://test/') });
   },
   async prepareStartNewConversation() {
-    return { baseURL: new URL('http://test/') };
+    return Promise.resolve({ baseURL: new URL('http://test/') });
   }
 };
 
 describe('When conversation started and bot returned with 2 activities in 2 turns', () => {
   let postContinue: JestMockOf<DefaultHttpResponseResolver>;
   let postConversations: JestMockOf<DefaultHttpResponseResolver>;
-  let startNewConversationResult: ResultOfPromise<
-    ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['startNewConversation']>
-  >;
+  let startNewConversationResult: ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['startNewConversation']>;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     postConversations = jest.fn<ReturnType<DefaultHttpResponseResolver>, Parameters<DefaultHttpResponseResolver>>(() =>
       HttpResponse.json({
         action: 'continue',
@@ -52,7 +49,7 @@ describe('When conversation started and bot returned with 2 activities in 2 turn
 
     const adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy);
 
-    startNewConversationResult = await adapter.startNewConversation(true);
+    startNewConversationResult = adapter.startNewConversation(true);
   });
 
   describe('should not POST to /conversations', () => {
