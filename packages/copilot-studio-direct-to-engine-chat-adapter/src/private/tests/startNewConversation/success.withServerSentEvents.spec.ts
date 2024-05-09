@@ -62,11 +62,14 @@ data: end
     describe('should have POST to /conversations', () => {
       test('once', () => expect(postConversations).toHaveBeenCalledTimes(1));
 
-      test('with header "Accept: text/event-stream"', () =>
+      test('with header "Accept" of "text/event-stream"', () =>
         expect(postConversations.mock.calls[0][0].request.headers.get('accept')).toBe('text/event-stream'));
 
-      test('with header "Content-Type: application/json"', () =>
+      test('with header "Content-Type" of "application/json"', () =>
         expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
+
+      test('without header "x-ms-conversationid"', () =>
+        expect(postConversations.mock.calls[0][0].request.headers.has('x-ms-conversationid')).toBe(false));
 
       test('with { emitStartConversationEvent: true }', () =>
         expect(postConversations.mock.calls[0][0].request.json()).resolves.toEqual({

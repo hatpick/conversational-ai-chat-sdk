@@ -66,8 +66,11 @@ describe('When conversation started and bot returned with 2 activities in 2 turn
     describe('should have POST to /conversations', () => {
       test('once', () => expect(postConversations).toHaveBeenCalledTimes(1));
 
-      test('with header "Content-Type: application/json"', () =>
+      test('with header "Content-Type" of "application/json"', () =>
         expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
+
+      test('without header "x-ms-conversationid"', () =>
+        expect(postConversations.mock.calls[0][0].request.headers.has('x-ms-conversationid')).toBe(false));
 
       test('with JSON body of { emitStartConversationEvent: true }', () =>
         expect(postConversations.mock.calls[0][0].request.json()).resolves.toEqual({
@@ -101,10 +104,10 @@ describe('When conversation started and bot returned with 2 activities in 2 turn
       describe('should have POST to /conversations/c-00001', () => {
         test('once', () => expect(postContinue).toHaveBeenCalledTimes(1));
 
-        test('with header "Content-Type: application/json"', () =>
+        test('with header "Content-Type" of "application/json"', () =>
           expect(postContinue.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
 
-        test('with header "x-ms-conversationid: c-00001"', () =>
+        test('with header "x-ms-conversationid" of "c-00001"', () =>
           expect(postContinue.mock.calls[0][0].request.headers.get('x-ms-conversationid')).toBe('c-00001'));
 
         test('with JSON body of {}', () => expect(postContinue.mock.calls[0][0].request.json()).resolves.toEqual({}));
