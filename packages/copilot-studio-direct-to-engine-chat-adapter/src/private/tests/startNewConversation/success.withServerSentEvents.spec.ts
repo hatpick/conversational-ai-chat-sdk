@@ -55,7 +55,7 @@ data: end
           )
       );
 
-      server.use(http.post('http://test/conversations/', postConversations));
+      server.use(http.post('http://test/conversations', postConversations));
 
       adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy);
       startNewConversationResult = adapter.startNewConversation(emitStartConversationEvent);

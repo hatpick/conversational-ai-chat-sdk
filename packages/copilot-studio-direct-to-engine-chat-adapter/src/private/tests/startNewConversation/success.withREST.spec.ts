@@ -47,7 +47,7 @@ describe.each([true, false])('With emitStartConversationEvent set to %s', emitSt
           } as BotResponse)
       );
 
-      server.use(http.post('http://test/conversations/', postConversations));
+      server.use(http.post('http://test/conversations', postConversations));
 
       postContinue = jest.fn<ReturnType<DefaultHttpResponseResolver>, Parameters<DefaultHttpResponseResolver>>(() =>
         HttpResponse.json({
@@ -56,7 +56,7 @@ describe.each([true, false])('With emitStartConversationEvent set to %s', emitSt
         } as BotResponse)
       );
 
-      server.use(http.post('http://test/conversations/c-00001', postContinue));
+      server.use(http.post('http://test/conversations/c-00001/continue', postContinue));
 
       adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy);
 
@@ -80,10 +80,10 @@ describe.each([true, false])('With emitStartConversationEvent set to %s', emitSt
         test('once', () => expect(postConversations).toHaveBeenCalledTimes(1));
 
         test('with query "api" of "start"', () =>
-          expect(new URL(postConversations.mock.calls[0][0].request.url).searchParams.get('api')).toBe('start'));
+          expect(new URL(postConversations.mock.calls[0][0].request.url)).toHaveProperty('search', '?api=start'));
 
         test('with hash of "#1"', () =>
-          expect(new URL(postConversations.mock.calls[0][0].request.url).hash).toBe('#1'));
+          expect(new URL(postConversations.mock.calls[0][0].request.url)).toHaveProperty('hash', '#1'));
 
         test('with header "Content-Type" of "application/json"', () =>
           expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
@@ -130,10 +130,10 @@ describe.each([true, false])('With emitStartConversationEvent set to %s', emitSt
           test('once', () => expect(postContinue).toHaveBeenCalledTimes(1));
 
           test('with query "api" of "start"', () =>
-            expect(new URL(postContinue.mock.calls[0][0].request.url).searchParams.get('api')).toBe('start'));
+            expect(new URL(postContinue.mock.calls[0][0].request.url)).toHaveProperty('search', '?api=start'));
 
           test('with hash of "#1"', () =>
-            expect(new URL(postConversations.mock.calls[0][0].request.url).hash).toBe('#1'));
+            expect(new URL(postContinue.mock.calls[0][0].request.url)).toHaveProperty('hash', '#1'));
 
           test('with header "Content-Type" of "application/json"', () =>
             expect(postContinue.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));

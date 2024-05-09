@@ -26,7 +26,7 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using %s', 
         () => response
       );
 
-      server.use(http.post('http://test/conversations/', postConversations));
+      server.use(http.post('http://test/conversations', postConversations));
 
       const strategy: HalfDuplexChatAdapterAPIStrategy = {
         async prepareExecuteTurn() {

@@ -115,21 +115,24 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
     }
   ): AsyncIterableIterator<Activity> {
     return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
-      let withInitialBody = true;
-
       for (let numTurn = 0; numTurn < MAX_CONTINUE_TURN; numTurn++) {
+        const isContinueTurn = !!this.#conversationId;
         let currentResponse: Response;
 
         const botResponsePromise = pRetry(
           async (): Promise<BotResponse> => {
-            const url = resolveURLWithQueryAndHash(`conversations/${this.#conversationId || ''}`, baseURL);
+            const url = resolveURLWithQueryAndHash(
+              baseURL,
+              'conversations',
+              ...(this.#conversationId ? [this.#conversationId, 'continue'] : [])
+            );
             const requestHeaders = new Headers(headers);
 
             this.#conversationId && requestHeaders.set('x-ms-conversationid', this.#conversationId);
             requestHeaders.set('content-type', 'application/json');
 
             currentResponse = await fetch(url.toString(), {
-              body: JSON.stringify(withInitialBody ? { ...body, ...initialBody } : body),
+              body: JSON.stringify(isContinueTurn ? body : { ...body, ...initialBody }),
               headers: requestHeaders,
               method: 'POST'
             });
@@ -169,15 +172,16 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
 
         const botResponse = await botResponsePromise;
 
-        if (botResponse.conversationId) {
-          this.#conversationId = botResponse.conversationId;
+        if (!this.#conversationId && !botResponse.conversationId) {
+          // TODO: Test this.
+          throw new Error('HTTP response from start new conversation must have "conversationId".');
         }
+
+        this.#conversationId = botResponse.conversationId;
 
         for await (const activity of botResponse.activities) {
           yield activity;
         }
-
-        withInitialBody = false;
 
         if (botResponse.action !== 'continue') {
           break;
@@ -207,14 +211,11 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
           requestHeaders.set('accept', 'text/event-stream');
           requestHeaders.set('content-type', 'application/json');
 
-          currentResponse = await fetch(
-            resolveURLWithQueryAndHash(`conversations/${this.#conversationId || ''}`, baseURL),
-            {
-              body: JSON.stringify(body),
-              headers: requestHeaders,
-              method: 'POST'
-            }
-          );
+          currentResponse = await fetch(resolveURLWithQueryAndHash(baseURL, 'conversations', this.#conversationId), {
+            body: JSON.stringify(body),
+            headers: requestHeaders,
+            method: 'POST'
+          });
 
           if (!currentResponse.ok) {
             throw new Error(`Server returned ${currentResponse.status} while calling the service.`);

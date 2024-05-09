@@ -1,5 +1,5 @@
-export function resolveURLWithQueryAndHash(relativeURL: string, baseURL: URL): URL {
-  const url = new URL(relativeURL, baseURL);
+export function resolveURLWithQueryAndHash(baseURL: URL, ...pathSegments: (false | string | undefined)[]): URL {
+  const url = new URL(pathSegments.filter(Boolean).join('/'), baseURL);
 
   url.hash = baseURL.hash;
   url.search = baseURL.search;

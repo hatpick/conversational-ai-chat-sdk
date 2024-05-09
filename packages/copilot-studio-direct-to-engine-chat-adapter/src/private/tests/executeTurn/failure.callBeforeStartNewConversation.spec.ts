@@ -15,10 +15,10 @@ describe('When call executeTurn before start new conversation', () => {
   beforeEach(() => {
     const strategy: HalfDuplexChatAdapterAPIStrategy = {
       async prepareExecuteTurn() {
-        return Promise.resolve({ baseURL: new URL('http://test/') });
+        return Promise.resolve({ baseURL: new URL('http://test/?api=execute#2') });
       },
       async prepareStartNewConversation() {
-        return Promise.resolve({ baseURL: new URL('http://test/') });
+        return Promise.resolve({ baseURL: new URL('http://test/?api=start#1') });
       }
     };
 
