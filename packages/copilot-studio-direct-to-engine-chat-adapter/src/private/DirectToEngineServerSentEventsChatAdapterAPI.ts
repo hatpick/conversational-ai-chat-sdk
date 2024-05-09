@@ -9,6 +9,7 @@ import { type TelemetryClient } from 'powerva-turn-based-chat-adapter-framework'
 
 import { type Transport } from '../types/Transport';
 import iterateReadableStream from './iterateReadableStream';
+import { resolveURLWithQueryAndHash } from './private/resolveURLWithQueryAndHash';
 import { parseBotResponse, type BotResponse } from './types/BotResponse';
 import { type ConversationId } from './types/ConversationId';
 import { type HalfDuplexChatAdapterAPI } from './types/HalfDuplexChatAdapterAPI';
@@ -31,15 +32,6 @@ type MinimalTelemetryClient = Pick<TelemetryClient, 'trackException'>;
 
 const DEFAULT_RETRY_COUNT = 4; // Will call 5 times.
 const MAX_CONTINUE_TURN = 999;
-
-function resolveURLWithQueryAndHash(relativeURL: string, baseURL: URL): URL {
-  const url = new URL(relativeURL, baseURL);
-
-  url.hash = baseURL.hash;
-  url.search = baseURL.search;
-
-  return url;
-}
 
 export default class DirectToEngineServerSentEventsChatAdapterAPI implements HalfDuplexChatAdapterAPI {
   // NOTES: This class must work over RPC and cross-domain:
