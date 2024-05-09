@@ -52,6 +52,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
     this.#telemetry = init?.telemetry;
   }
 
+  // TODO: Add a busy flag, throw when calling executeTurn() while another iteration is ongoing.
   #conversationId: ConversationId | undefined = undefined;
   #retry: RetryInit & { retries: number };
   #strategy: HalfDuplexChatAdapterAPIStrategy;
@@ -116,7 +117,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
   ): AsyncIterableIterator<Activity> {
     return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
       for (let numTurn = 0; numTurn < MAX_CONTINUE_TURN; numTurn++) {
-        const isContinueTurn = !!this.#conversationId;
+        const isContinueTurn = !!numTurn;
         let currentResponse: Response;
 
         const botResponsePromise = pRetry(
@@ -124,7 +125,8 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
             const url = resolveURLWithQueryAndHash(
               baseURL,
               'conversations',
-              ...(this.#conversationId ? [this.#conversationId, 'continue'] : [])
+              this.#conversationId,
+              isContinueTurn && 'continue'
             );
             const requestHeaders = new Headers(headers);
 
@@ -172,12 +174,14 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
 
         const botResponse = await botResponsePromise;
 
-        if (!this.#conversationId && !botResponse.conversationId) {
-          // TODO: Test this.
-          throw new Error('HTTP response from start new conversation must have "conversationId".');
-        }
+        if (!this.#conversationId) {
+          if (!botResponse.conversationId) {
+            // TODO: Test this.
+            throw new Error('HTTP response from start new conversation must have "conversationId".');
+          }
 
-        this.#conversationId = botResponse.conversationId;
+          this.#conversationId = botResponse.conversationId;
+        }
 
         for await (const activity of botResponse.activities) {
           yield activity;
