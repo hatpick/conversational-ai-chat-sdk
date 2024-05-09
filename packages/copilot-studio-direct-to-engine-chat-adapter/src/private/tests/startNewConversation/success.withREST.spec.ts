@@ -55,18 +55,9 @@ describe('When conversation started and bot returned with 2 activities in 2 turn
     startNewConversationResult = await adapter.startNewConversation(true);
   });
 
-  describe('should have POST to /conversations', () => {
-    test('once', () => expect(postConversations).toHaveBeenCalledTimes(1));
-
-    test('with header "Content-Type: application/json"', () =>
-      expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
-
-    test('with JSON body of { emitStartConversationEvent: true }', () =>
-      expect(postConversations.mock.calls[0][0].request.json()).resolves.toEqual({ emitStartConversationEvent: true }));
+  describe('should not POST to /conversations', () => {
+    test('once', () => expect(postConversations).toHaveBeenCalledTimes(0));
   });
-
-  test('should not POST to /conversations/c-00001 because iteration is not started', () =>
-    expect(postContinue).toHaveBeenCalledTimes(0));
 
   describe('after iterate once', () => {
     let firstResult: IteratorResult<Activity>;
@@ -74,6 +65,20 @@ describe('When conversation started and bot returned with 2 activities in 2 turn
     beforeEach(async () => {
       firstResult = await startNewConversationResult.next();
     });
+
+    describe('should have POST to /conversations', () => {
+      test('once', () => expect(postConversations).toHaveBeenCalledTimes(1));
+
+      test('with header "Content-Type: application/json"', () =>
+        expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
+
+      test('with JSON body of { emitStartConversationEvent: true }', () =>
+        expect(postConversations.mock.calls[0][0].request.json()).resolves.toEqual({
+          emitStartConversationEvent: true
+        }));
+    });
+
+    test('should not POST to /conversations/c-00001', () => expect(postContinue).toHaveBeenCalledTimes(0));
 
     test('should return first activity', () =>
       expect(firstResult).toEqual({

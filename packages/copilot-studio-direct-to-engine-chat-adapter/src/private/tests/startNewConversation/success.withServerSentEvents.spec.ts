@@ -53,24 +53,28 @@ data: end
     startNewConversationResult = await adapter.startNewConversation(true);
   });
 
-  describe('should have POST to /conversations', () => {
-    test('once', () => expect(postConversations).toHaveBeenCalledTimes(1));
-
-    test('with header "Accept: text/event-stream"', () =>
-      expect(postConversations.mock.calls[0][0].request.headers.get('accept')).toBe('text/event-stream'));
-
-    test('with header "Content-Type: application/json"', () =>
-      expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
-
-    test('with { emitStartConversationEvent: true }', () =>
-      expect(postConversations.mock.calls[0][0].request.json()).resolves.toEqual({ emitStartConversationEvent: true }));
-  });
+  test('should not POST to /conversations', () => expect(postConversations).toHaveBeenCalledTimes(0));
 
   describe('after iterate once', () => {
     let firstResult: IteratorResult<Activity>;
 
     beforeEach(async () => {
       firstResult = await startNewConversationResult.next();
+    });
+
+    describe('should have POST to /conversations', () => {
+      test('once', () => expect(postConversations).toHaveBeenCalledTimes(1));
+
+      test('with header "Accept: text/event-stream"', () =>
+        expect(postConversations.mock.calls[0][0].request.headers.get('accept')).toBe('text/event-stream'));
+
+      test('with header "Content-Type: application/json"', () =>
+        expect(postConversations.mock.calls[0][0].request.headers.get('content-type')).toBe('application/json'));
+
+      test('with { emitStartConversationEvent: true }', () =>
+        expect(postConversations.mock.calls[0][0].request.json()).resolves.toEqual({
+          emitStartConversationEvent: true
+        }));
     });
 
     test('should return first activity', () =>

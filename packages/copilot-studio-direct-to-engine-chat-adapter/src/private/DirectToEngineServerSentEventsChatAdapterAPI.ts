@@ -69,10 +69,10 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
     return response;
   }
 
-  async #post(
+  #post(
     baseURL: URL,
     { body, headers, transport }: { body?: Record<string, unknown>; headers?: HeadersInit; transport?: Transport }
-  ): Promise<AsyncIterableIterator<Activity>> {
+  ): AsyncIterableIterator<Activity> {
     if (transport === 'server sent events') {
       return this.#postWithServerSentEvents(baseURL, { body, headers });
     }
@@ -80,32 +80,121 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
     return this.#postWithREST(baseURL, { body, headers });
   }
 
-  async #postWithREST(
+  #postWithREST(
     baseURL: URL,
     { body, headers }: { body?: Record<string, unknown>; headers?: HeadersInit }
-  ): Promise<AsyncIterableIterator<Activity>> {
-    const post = async (withBody: boolean): Promise<AsyncIterableIterator<Activity>> => {
+  ): AsyncIterableIterator<Activity> {
+    return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
+      const MAX_TURN = 1000;
+      let withBody = true;
+
+      for (let numTurn = 0; numTurn < MAX_TURN; numTurn++) {
+        let currentResponse: Response;
+
+        const initialPromise = pRetry(
+          async (): Promise<BotResponse> => {
+            const url = resolveURLWithQueryAndHash(`conversations/${this.#conversationId || ''}`, baseURL);
+
+            currentResponse = await fetch(url.toString(), {
+              body: JSON.stringify(withBody ? body : {}),
+              headers: {
+                ...headers,
+                ...(this.#conversationId ? { 'x-ms-conversationid': this.#conversationId } : {}),
+                'content-type': 'application/json'
+              },
+              method: 'POST'
+            });
+
+            if (!currentResponse.ok) {
+              throw new Error(`Server returned ${currentResponse.status} while calling the service.`);
+            }
+
+            return parseBotResponse(await currentResponse.json());
+          },
+          {
+            onFailedAttempt: (error: unknown) => {
+              if (currentResponse && currentResponse.status < 500) {
+                throw error;
+              }
+            },
+            retries: RETRY_COUNT
+          }
+        );
+
+        const telemetry = this.#telemetry;
+
+        telemetry &&
+          initialPromise.catch((error: unknown) => {
+            // TODO [hawo]: We should rework on this telemetry for a couple of reasons:
+            //              1. We did not handle it, why call it "handledAt"?
+            //              2. We should indicate this error is related to the protocol
+            error instanceof Error &&
+              telemetry.trackException(
+                { error },
+                {
+                  handledAt: 'withRetries',
+                  retryCount: RETRY_COUNT + 1 + ''
+                }
+              );
+          });
+
+        const botResponse = await initialPromise;
+
+        if (botResponse.conversationId) {
+          this.#conversationId = botResponse.conversationId;
+        }
+
+        for await (const activity of botResponse.activities) {
+          yield activity;
+        }
+
+        withBody = false;
+
+        if (botResponse.action !== 'continue') {
+          break;
+        }
+      }
+    }.call(this);
+  }
+
+  #postWithServerSentEvents(
+    baseURL: URL,
+    { body, headers }: { body?: Record<string, unknown>; headers?: HeadersInit }
+  ): AsyncIterableIterator<Activity> {
+    return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
       let currentResponse: Response;
 
-      const initialPromise = pRetry(
-        async (): Promise<BotResponse> => {
-          const url = resolveURLWithQueryAndHash(`conversations/${this.#conversationId || ''}`, baseURL);
-
-          currentResponse = await fetch(url.toString(), {
-            body: JSON.stringify(withBody ? body : {}),
-            headers: {
-              ...headers,
-              ...(this.#conversationId ? { 'x-ms-conversationid': this.#conversationId } : {}),
-              'content-type': 'application/json'
-            },
-            method: 'POST'
-          });
+      const responseBodyPromise = pRetry(
+        async (): Promise<ReadableStream<Uint8Array>> => {
+          currentResponse = await fetch(
+            resolveURLWithQueryAndHash(`conversations/${this.#conversationId || ''}`, baseURL),
+            {
+              method: 'POST',
+              body: JSON.stringify(body),
+              headers: {
+                ...headers,
+                ...(this.#conversationId ? { 'x-ms-conversationid': this.#conversationId } : {}),
+                accept: 'text/event-stream',
+                'content-type': 'application/json'
+              }
+            }
+          );
 
           if (!currentResponse.ok) {
             throw new Error(`Server returned ${currentResponse.status} while calling the service.`);
           }
 
-          return parseBotResponse(await currentResponse.json());
+          const contentType = currentResponse.headers.get('content-type');
+
+          if (!/^text\/event-stream(;|$)/.test(contentType || '')) {
+            throw new Error(
+              `Server did not respond with content type of "text/event-stream", instead, received "${contentType}".`
+            );
+          } else if (!currentResponse.body) {
+            throw new Error(`Server did not respond with body.`);
+          }
+
+          return currentResponse.body;
         },
         {
           onFailedAttempt: (error: unknown) => {
@@ -120,7 +209,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
       const telemetry = this.#telemetry;
 
       telemetry &&
-        initialPromise.catch((error: unknown) => {
+        responseBodyPromise.catch((error: unknown) => {
           // TODO [hawo]: We should rework on this telemetry for a couple of reasons:
           //              1. We did not handle it, why call it "handledAt"?
           //              2. We should indicate this error is related to the protocol
@@ -134,95 +223,9 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
             );
         });
 
-      const botResponse = await initialPromise;
+      const responseBody = await responseBodyPromise;
 
-      if (botResponse.conversationId) {
-        this.#conversationId = botResponse.conversationId;
-      }
-
-      return (async function* (): AsyncIterableIterator<Activity> {
-        for await (const activity of botResponse.activities) {
-          yield activity;
-        }
-
-        if (botResponse.action === 'continue') {
-          yield* await post(false);
-        }
-      })();
-    };
-
-    return post(true);
-  }
-
-  async #postWithServerSentEvents(
-    baseURL: URL,
-    { body, headers }: { body?: Record<string, unknown>; headers?: HeadersInit }
-  ): Promise<AsyncIterableIterator<Activity>> {
-    let currentResponse: Response;
-
-    const responseBodyPromise = pRetry(
-      async (): Promise<ReadableStream<Uint8Array>> => {
-        currentResponse = await fetch(
-          resolveURLWithQueryAndHash(`conversations/${this.#conversationId || ''}`, baseURL),
-          {
-            method: 'POST',
-            body: JSON.stringify(body),
-            headers: {
-              ...headers,
-              ...(this.#conversationId ? { 'x-ms-conversationid': this.#conversationId } : {}),
-              accept: 'text/event-stream',
-              'content-type': 'application/json'
-            }
-          }
-        );
-
-        if (!currentResponse.ok) {
-          throw new Error(`Server returned ${currentResponse.status} while calling the service.`);
-        }
-
-        const contentType = currentResponse.headers.get('content-type');
-
-        if (!/^text\/event-stream(;|$)/.test(contentType || '')) {
-          throw new Error(
-            `Server did not respond with content type of "text/event-stream", instead, received "${contentType}".`
-          );
-        } else if (!currentResponse.body) {
-          throw new Error(`Server did not respond with body.`);
-        }
-
-        return currentResponse.body;
-      },
-      {
-        onFailedAttempt: (error: unknown) => {
-          if (currentResponse && currentResponse.status < 500) {
-            throw error;
-          }
-        },
-        retries: RETRY_COUNT
-      }
-    );
-
-    const telemetry = this.#telemetry;
-
-    telemetry &&
-      responseBodyPromise.catch((error: unknown) => {
-        // TODO [hawo]: We should rework on this telemetry for a couple of reasons:
-        //              1. We did not handle it, why call it "handledAt"?
-        //              2. We should indicate this error is related to the protocol
-        error instanceof Error &&
-          telemetry.trackException(
-            { error },
-            {
-              handledAt: 'withRetries',
-              retryCount: RETRY_COUNT + 1 + ''
-            }
-          );
-      });
-
-    const responseBody = await responseBodyPromise;
-
-    return iterateReadableStream(
-      responseBody
+      const readableStream = responseBody
         .pipeThrough(new TextDecoderStream())
         .pipeThrough(new EventSourceParserStream())
         .pipeThrough(
@@ -238,18 +241,14 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
                 }
 
                 controller.enqueue(activity);
-                // } else {
-                //   const botResponse = parseBotResponse(JSON.parse(data));
-
-                //   if (!this.#conversationId && botResponse.conversationId) {
-                //     this.#conversationId = botResponse.conversationId;
-                //   }
-
-                //   botResponse.activities.map(controller.enqueue.bind(controller));
               }
             }
           })
-        )
-    );
+        );
+
+      for await (const activity of iterateReadableStream(readableStream)) {
+        yield activity;
+      }
+    }.call(this);
   }
 }
