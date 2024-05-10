@@ -10,7 +10,7 @@ import asyncGeneratorToArray from '../private/asyncGeneratorToArray';
 import type { BotResponse } from '../private/types/BotResponse';
 import { parseConversationId } from '../private/types/ConversationId';
 import type { DefaultHttpResponseResolver } from '../private/types/DefaultHttpResponseResolver';
-import type { Strategy } from '../types/HalfDuplexChatAdapterAPIStrategy';
+import type { Strategy } from '../types/Strategy';
 import type { JestMockOf } from '../private/types/JestMockOf';
 
 const server = setupServer();

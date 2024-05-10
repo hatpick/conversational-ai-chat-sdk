@@ -1,6 +1,6 @@
-import PrebuiltBotAPIStrategy from './PrebuiltBotAPIStrategy';
-import PublishedBotAPIStrategy from './PublishedBotAPIStrategy';
-import TestCanvasBotAPIStrategy from './TestCanvasBotAPIStrategy';
+import PrebuiltBotStrategy from './PrebuiltBotStrategy';
+import PublishedBotStrategy from './PublishedBotStrategy';
+import TestCanvasBotStrategy from './TestCanvasBotStrategy';
 import createHalfDuplexChatAdapter, {
   type CreateHalfDuplexChatAdapterInit,
   type ExecuteTurnFunction,
@@ -8,13 +8,13 @@ import createHalfDuplexChatAdapter, {
 } from './createHalfDuplexChatAdapter';
 import toDirectLineJS from './toDirectLineJS';
 import { type DirectLineJSBotConnection } from './types/DirectLineJSBotConnection';
-import { type Strategy, type StrategyRequestInit } from './types/HalfDuplexChatAdapterAPIStrategy';
+import { type Strategy, type StrategyRequestInit } from './types/Strategy';
 import { type Transport } from './types/Transport';
 
 export {
-  PrebuiltBotAPIStrategy,
-  PublishedBotAPIStrategy,
-  TestCanvasBotAPIStrategy,
+  PrebuiltBotStrategy,
+  PublishedBotStrategy,
+  TestCanvasBotStrategy,
   createHalfDuplexChatAdapter,
   toDirectLineJS
 };

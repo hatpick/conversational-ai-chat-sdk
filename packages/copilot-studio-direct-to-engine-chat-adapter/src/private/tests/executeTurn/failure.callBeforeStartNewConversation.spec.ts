@@ -1,6 +1,6 @@
 import { setupServer } from 'msw/node';
 
-import type { Strategy } from '../../../types/HalfDuplexChatAdapterAPIStrategy';
+import type { Strategy } from '../../../types/Strategy';
 import DirectToEngineServerSentEventsChatAdapterAPI from '../../DirectToEngineServerSentEventsChatAdapterAPI';
 
 const server = setupServer();

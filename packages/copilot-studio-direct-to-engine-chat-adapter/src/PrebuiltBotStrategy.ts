@@ -12,10 +12,10 @@ import {
   type StringSchema
 } from 'valibot';
 
-import { type Strategy } from './types/HalfDuplexChatAdapterAPIStrategy';
-import { Transport } from './types/Transport';
+import { type Strategy } from './types/Strategy';
+import { type Transport } from './types/Transport';
 
-const PrebuiltBotAPIStrategyInitSchema = () =>
+const PrebuiltBotStrategyInitSchema = () =>
   object(
     {
       botIdentifier: string([regex(UUID_REGEX)]),
@@ -29,12 +29,12 @@ const PrebuiltBotAPIStrategyInitSchema = () =>
     never()
   );
 
-type PrebuiltBotAPIStrategyInit = Output<ReturnType<typeof PrebuiltBotAPIStrategyInitSchema>>;
+type PrebuiltBotStrategyInit = Output<ReturnType<typeof PrebuiltBotStrategyInitSchema>>;
 
 const API_VERSION = '2022-03-01-preview';
 
-export default class PublishedBotAPIStrategy implements Strategy {
-  constructor({ botIdentifier, environmentEndpointURL, getTokenCallback, transport }: PrebuiltBotAPIStrategyInit) {
+export default class PublishedBotStrategy implements Strategy {
+  constructor({ botIdentifier, environmentEndpointURL, getTokenCallback, transport }: PrebuiltBotStrategyInit) {
     this.#getTokenCallback = getTokenCallback;
     this.#transport = transport;
 

@@ -7,7 +7,7 @@ import asyncIterableToArray from '../../asyncIterableToArray';
 import type { BotResponse } from '../../types/BotResponse';
 import { parseConversationId } from '../../types/ConversationId';
 import type { DefaultHttpResponseResolver } from '../../types/DefaultHttpResponseResolver';
-import type { Strategy } from '../../../types/HalfDuplexChatAdapterAPIStrategy';
+import type { Strategy } from '../../../types/Strategy';
 import type { JestMockOf } from '../../types/JestMockOf';
 
 const server = setupServer();

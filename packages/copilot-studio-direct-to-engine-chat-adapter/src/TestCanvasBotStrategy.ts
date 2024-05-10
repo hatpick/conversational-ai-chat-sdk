@@ -13,10 +13,10 @@ import {
   type StringSchema
 } from 'valibot';
 
-import { type Strategy } from './types/HalfDuplexChatAdapterAPIStrategy';
-import { Transport } from './types/Transport';
+import { type Strategy } from './types/Strategy';
+import { type Transport } from './types/Transport';
 
-const TestCanvasBotAPIStrategyInitSchema = () =>
+const TestCanvasBotStrategyInitSchema = () =>
   object(
     {
       botId: string([regex(UUID_REGEX)]),
@@ -32,17 +32,10 @@ const TestCanvasBotAPIStrategyInitSchema = () =>
     never()
   );
 
-type TestCanvasBotAPIStrategyInit = Output<ReturnType<typeof TestCanvasBotAPIStrategyInitSchema>>;
+type TestCanvasBotStrategyInit = Output<ReturnType<typeof TestCanvasBotStrategyInitSchema>>;
 
-export default class TestCanvasBotAPIStrategy implements Strategy {
-  constructor({
-    botId,
-    deltaToken,
-    islandURI,
-    environmentId,
-    getTokenCallback,
-    transport
-  }: TestCanvasBotAPIStrategyInit) {
+export default class TestCanvasBotStrategy implements Strategy {
+  constructor({ botId, deltaToken, islandURI, environmentId, getTokenCallback, transport }: TestCanvasBotStrategyInit) {
     this.#getTokenCallback = getTokenCallback;
 
     this.#baseURL = new URL(`/environments/${encodeURI(environmentId)}/bots/${encodeURI(botId)}/test/`, islandURI);
@@ -68,9 +61,7 @@ export default class TestCanvasBotAPIStrategy implements Strategy {
     };
   }
 
-  public async prepareStartNewConversation(): ReturnType<
-    Strategy['prepareStartNewConversation']
-  > {
+  public async prepareStartNewConversation(): ReturnType<Strategy['prepareStartNewConversation']> {
     return {
       baseURL: this.#baseURL,
       body: { deltaToken: this.#deltaToken },

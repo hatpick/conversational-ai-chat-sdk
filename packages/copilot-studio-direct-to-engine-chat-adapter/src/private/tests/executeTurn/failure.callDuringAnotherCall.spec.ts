@@ -2,7 +2,7 @@ import type { Activity } from 'botframework-directlinejs';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
-import type { Strategy } from '../../../types/HalfDuplexChatAdapterAPIStrategy';
+import type { Strategy } from '../../../types/Strategy';
 import DirectToEngineServerSentEventsChatAdapterAPI from '../../DirectToEngineServerSentEventsChatAdapterAPI';
 import asyncIterableToArray from '../../asyncIterableToArray';
 import type { BotResponse } from '../../types/BotResponse';

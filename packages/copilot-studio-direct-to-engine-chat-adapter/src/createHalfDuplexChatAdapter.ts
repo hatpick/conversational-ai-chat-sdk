@@ -2,7 +2,7 @@ import { type Activity } from 'botframework-directlinejs';
 
 import DirectToEngineServerSentEventsChatAdapterAPI from './private/DirectToEngineServerSentEventsChatAdapterAPI';
 import { type HalfDuplexChatAdapterAPI } from './private/types/HalfDuplexChatAdapterAPI';
-import { type Strategy } from './types/HalfDuplexChatAdapterAPIStrategy';
+import { type Strategy } from './types/Strategy';
 
 export type ExecuteTurnFunction = (activity: Activity) => Promise<TurnGenerator>;
 

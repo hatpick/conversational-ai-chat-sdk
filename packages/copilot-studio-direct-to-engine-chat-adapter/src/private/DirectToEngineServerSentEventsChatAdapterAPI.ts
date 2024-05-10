@@ -2,7 +2,7 @@ import { type Activity } from 'botframework-directlinejs';
 import { EventSourceParserStream, type ParsedEvent } from 'eventsource-parser/stream';
 import pRetry from 'p-retry';
 
-import { type Strategy } from '../types/HalfDuplexChatAdapterAPIStrategy';
+import { type Strategy } from '../types/Strategy';
 import { type Transport } from '../types/Transport';
 import iterateReadableStream from './iterateReadableStream';
 import { resolveURLWithQueryAndHash } from './resolveURLWithQueryAndHash';

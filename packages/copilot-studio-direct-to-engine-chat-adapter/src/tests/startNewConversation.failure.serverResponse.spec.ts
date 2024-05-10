@@ -3,7 +3,7 @@ import { setupServer } from 'msw/node';
 
 import createHalfDuplexChatAdapter, { type TurnGenerator } from '../createHalfDuplexChatAdapter';
 import type { DefaultHttpResponseResolver } from '../private/types/DefaultHttpResponseResolver';
-import type { Strategy } from '../types/HalfDuplexChatAdapterAPIStrategy';
+import type { Strategy } from '../types/Strategy';
 import type { JestMockOf } from '../private/types/JestMockOf';
 
 const server = setupServer();
