@@ -1,7 +1,3 @@
-/*!
- * Copyright (C) Microsoft Corporation. All rights reserved.
- */
-
 import iterateWithReturnValue from './iterateWithReturnValueAsync';
 
 function sleep(durationInMS = 0): Promise<void> {

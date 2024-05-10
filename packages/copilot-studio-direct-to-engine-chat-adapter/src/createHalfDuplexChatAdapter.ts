@@ -1,19 +1,23 @@
-/*!
- * Copyright (C) Microsoft Corporation. All rights reserved.
- */
-
 import { type Activity } from 'botframework-directlinejs';
 
-import DirectToEngineServerSentEventsChatAdapterAPI, {
-  type DirectToEngineServerSentEventsChatAdapterAPIInit
-} from './private/DirectToEngineServerSentEventsChatAdapterAPI';
+import DirectToEngineServerSentEventsChatAdapterAPI from './private/DirectToEngineServerSentEventsChatAdapterAPI';
 import { type HalfDuplexChatAdapterAPI } from './private/types/HalfDuplexChatAdapterAPI';
 import { type HalfDuplexChatAdapterAPIStrategy } from './private/types/HalfDuplexChatAdapterAPIStrategy';
 
 export type ExecuteTurnFunction = (activity: Activity) => Promise<TurnGenerator>;
 
-type Init = DirectToEngineServerSentEventsChatAdapterAPIInit & {
+export type CreateExecuteTurnInit = {
   emitStartConversationEvent?: boolean;
+  retry?:
+    | Readonly<{
+        factor?: number | undefined;
+        minTimeout?: number | undefined;
+        maxTimeout?: number | undefined;
+        randomize?: boolean | undefined;
+        retries?: number | undefined;
+      }>
+    | undefined;
+  telemetry?: { trackException(exception: unknown, customProperties?: Record<string, unknown>): void };
 };
 
 export type TurnGenerator = AsyncGenerator<Activity, ExecuteTurnFunction, undefined>;
@@ -38,9 +42,15 @@ const createExecuteTurn = (api: HalfDuplexChatAdapterAPI): ExecuteTurnFunction =
   };
 };
 
-export default function createHalfDuplexChatAdapter(strategy: HalfDuplexChatAdapterAPIStrategy, init: Init = {}) {
+export default function createHalfDuplexChatAdapter(
+  strategy: HalfDuplexChatAdapterAPIStrategy,
+  init: CreateExecuteTurnInit = {}
+) {
   return async (): Promise<TurnGenerator> => {
-    const api = new DirectToEngineServerSentEventsChatAdapterAPI(strategy, init);
+    const api = new DirectToEngineServerSentEventsChatAdapterAPI(strategy, {
+      retry: init.retry,
+      telemetry: init.telemetry
+    });
 
     const activities = await api.startNewConversation(init?.emitStartConversationEvent ?? true);
 

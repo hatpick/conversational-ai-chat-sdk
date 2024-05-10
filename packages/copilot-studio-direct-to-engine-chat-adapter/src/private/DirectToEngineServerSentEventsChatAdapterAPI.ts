@@ -1,7 +1,3 @@
-/*!
- * Copyright (C) Microsoft Corporation. All rights reserved.
- */
-
 import { type Activity } from 'botframework-directlinejs';
 import { EventSourceParserStream, type ParsedEvent } from 'eventsource-parser/stream';
 import pRetry from 'p-retry';

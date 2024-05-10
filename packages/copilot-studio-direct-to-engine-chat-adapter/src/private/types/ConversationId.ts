@@ -1,7 +1,3 @@
-/*!
- * Copyright (C) Microsoft Corporation. All rights reserved.
- */
-
 import { type Tagged } from 'type-fest';
 import { parse, string, type Output, type StringSchema } from 'valibot';
 
