@@ -8,11 +8,13 @@ import DirectToEngineServerSentEventsChatAdapterAPI from './private/DirectToEngi
 import { type HalfDuplexChatAdapterAPI } from './private/types/HalfDuplexChatAdapterAPI';
 import { type HalfDuplexChatAdapterAPIStrategy } from './private/types/HalfDuplexChatAdapterAPIStrategy';
 
-type ExecuteTurnFunction = (activity: Activity) => Promise<TurnGenerator>;
+export type ExecuteTurnFunction = (activity: Activity) => Promise<TurnGenerator>;
+
 type Init = ConstructorParameters<typeof DirectToEngineServerSentEventsChatAdapterAPI>[1] & {
   emitStartConversationEvent?: boolean;
 };
-type TurnGenerator = AsyncGenerator<Activity, ExecuteTurnFunction, undefined>;
+
+export type TurnGenerator = AsyncGenerator<Activity, ExecuteTurnFunction, undefined>;
 
 const createExecuteTurn = (api: HalfDuplexChatAdapterAPI): ExecuteTurnFunction => {
   let obsoleted = false;
@@ -38,7 +40,7 @@ export default function createHalfDuplexChatAdapter(strategy: HalfDuplexChatAdap
   return async (): Promise<TurnGenerator> => {
     const api = new DirectToEngineServerSentEventsChatAdapterAPI(strategy, init);
 
-    const activities = await api.startNewConversation(init?.emitStartConversationEvent || true);
+    const activities = await api.startNewConversation(init?.emitStartConversationEvent ?? true);
 
     return (async function* (): TurnGenerator {
       yield* activities;
