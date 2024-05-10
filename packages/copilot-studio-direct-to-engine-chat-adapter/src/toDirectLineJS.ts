@@ -8,7 +8,7 @@ import {
 import { v4 } from 'uuid';
 
 import type { TurnGenerator } from './createHalfDuplexChatAdapter';
-import iterateWithReturnValue from './private/iterateWithReturnValueAsync';
+import iterateWithReturnValue from './private/iterateWithReturnValue';
 import { type ActivityId, type DirectLineJSBotConnection } from './types/DirectLineJSBotConnection';
 
 export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): DirectLineJSBotConnection {
