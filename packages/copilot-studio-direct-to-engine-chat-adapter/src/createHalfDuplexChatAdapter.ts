@@ -2,11 +2,11 @@ import { type Activity } from 'botframework-directlinejs';
 
 import DirectToEngineServerSentEventsChatAdapterAPI from './private/DirectToEngineServerSentEventsChatAdapterAPI';
 import { type HalfDuplexChatAdapterAPI } from './private/types/HalfDuplexChatAdapterAPI';
-import { type HalfDuplexChatAdapterAPIStrategy } from './private/types/HalfDuplexChatAdapterAPIStrategy';
+import { type Strategy } from './types/HalfDuplexChatAdapterAPIStrategy';
 
 export type ExecuteTurnFunction = (activity: Activity) => Promise<TurnGenerator>;
 
-export type CreateExecuteTurnInit = {
+export type CreateHalfDuplexChatAdapterInit = {
   emitStartConversationEvent?: boolean;
   retry?:
     | Readonly<{
@@ -42,10 +42,7 @@ const createExecuteTurn = (api: HalfDuplexChatAdapterAPI): ExecuteTurnFunction =
   };
 };
 
-export default function createHalfDuplexChatAdapter(
-  strategy: HalfDuplexChatAdapterAPIStrategy,
-  init: CreateExecuteTurnInit = {}
-) {
+export default function createHalfDuplexChatAdapter(strategy: Strategy, init: CreateHalfDuplexChatAdapterInit = {}) {
   return async (): Promise<TurnGenerator> => {
     const api = new DirectToEngineServerSentEventsChatAdapterAPI(strategy, {
       retry: init.retry,

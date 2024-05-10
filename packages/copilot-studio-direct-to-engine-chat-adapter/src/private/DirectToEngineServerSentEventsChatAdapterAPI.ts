@@ -2,13 +2,13 @@ import { type Activity } from 'botframework-directlinejs';
 import { EventSourceParserStream, type ParsedEvent } from 'eventsource-parser/stream';
 import pRetry from 'p-retry';
 
+import { type Strategy } from '../types/HalfDuplexChatAdapterAPIStrategy';
 import { type Transport } from '../types/Transport';
 import iterateReadableStream from './iterateReadableStream';
 import { resolveURLWithQueryAndHash } from './resolveURLWithQueryAndHash';
 import { parseBotResponse, type BotResponse } from './types/BotResponse';
 import { parseConversationId, type ConversationId } from './types/ConversationId';
 import { type HalfDuplexChatAdapterAPI } from './types/HalfDuplexChatAdapterAPI';
-import { type HalfDuplexChatAdapterAPIStrategy } from './types/HalfDuplexChatAdapterAPIStrategy';
 
 export type DirectToEngineServerSentEventsChatAdapterAPIInit = {
   retry?:
@@ -32,7 +32,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
   //        - Do not add any non-async methods or properties
   //        - Do not pass any arguments that is not able to be cloned by the Structured Clone Algorithm
   //        - After modifying this class, always test with a C1-hosted PVA Anywhere Bot
-  constructor(strategy: HalfDuplexChatAdapterAPIStrategy, init?: DirectToEngineServerSentEventsChatAdapterAPIInit) {
+  constructor(strategy: Strategy, init?: DirectToEngineServerSentEventsChatAdapterAPIInit) {
     this.#retry = {
       factor: init?.retry?.factor,
       maxTimeout: init?.retry?.maxTimeout,
@@ -48,12 +48,8 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
   #busy: boolean = false;
   #conversationId: ConversationId | undefined = undefined;
   #retry: DirectToEngineServerSentEventsChatAdapterAPIInit['retry'] & { retries: number };
-  #strategy: HalfDuplexChatAdapterAPIStrategy;
+  #strategy: Strategy;
   #telemetry: DirectToEngineServerSentEventsChatAdapterAPIInit['telemetry'];
-
-  get conversationId(): ConversationId | undefined {
-    return this.#conversationId;
-  }
 
   public startNewConversation(emitStartConversationEvent: boolean): AsyncIterableIterator<Activity> {
     if (this.#busy) {

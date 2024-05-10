@@ -15,7 +15,7 @@ import {
   type StringSchema
 } from 'valibot';
 
-import { type ConversationId } from './ConversationId';
+import { type ConversationIdSchema } from './ConversationId';
 
 export const BotResponseSchema = object({
   action: optional(
@@ -33,7 +33,7 @@ export const BotResponseSchema = object({
     ])
   ),
   activities: array(any() as AnySchema<Activity>),
-  conversationId: optional(string() as StringSchema<ConversationId>)
+  conversationId: optional(string() as typeof ConversationIdSchema)
 });
 
 /**

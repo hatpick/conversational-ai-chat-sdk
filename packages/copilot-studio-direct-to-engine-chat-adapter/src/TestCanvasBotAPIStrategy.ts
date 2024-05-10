@@ -12,7 +12,8 @@ import {
   type SpecialSchema,
   type StringSchema
 } from 'valibot';
-import { type HalfDuplexChatAdapterAPIStrategy } from './private/types/HalfDuplexChatAdapterAPIStrategy';
+
+import { type Strategy } from './types/HalfDuplexChatAdapterAPIStrategy';
 import { Transport } from './types/Transport';
 
 const TestCanvasBotAPIStrategyInitSchema = () =>
@@ -33,7 +34,7 @@ const TestCanvasBotAPIStrategyInitSchema = () =>
 
 type TestCanvasBotAPIStrategyInit = Output<ReturnType<typeof TestCanvasBotAPIStrategyInitSchema>>;
 
-export default class TestCanvasBotAPIStrategy implements HalfDuplexChatAdapterAPIStrategy {
+export default class TestCanvasBotAPIStrategy implements Strategy {
   constructor({
     botId,
     deltaToken,
@@ -58,7 +59,7 @@ export default class TestCanvasBotAPIStrategy implements HalfDuplexChatAdapterAP
     return new Headers({ authorization: `Bearer ${await this.#getTokenCallback()}` });
   }
 
-  public async prepareExecuteTurn(): ReturnType<HalfDuplexChatAdapterAPIStrategy['prepareExecuteTurn']> {
+  public async prepareExecuteTurn(): ReturnType<Strategy['prepareExecuteTurn']> {
     return {
       baseURL: this.#baseURL,
       body: { deltaToken: this.#deltaToken },
@@ -68,7 +69,7 @@ export default class TestCanvasBotAPIStrategy implements HalfDuplexChatAdapterAP
   }
 
   public async prepareStartNewConversation(): ReturnType<
-    HalfDuplexChatAdapterAPIStrategy['prepareStartNewConversation']
+    Strategy['prepareStartNewConversation']
   > {
     return {
       baseURL: this.#baseURL,

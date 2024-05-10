@@ -1,11 +1,12 @@
 import type { Activity } from 'botframework-directlinejs';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
+
 import DirectToEngineServerSentEventsChatAdapterAPI from '../DirectToEngineServerSentEventsChatAdapterAPI';
 import type { BotResponse } from '../types/BotResponse';
 import { parseConversationId } from '../types/ConversationId';
 import type { DefaultHttpResponseResolver } from '../types/DefaultHttpResponseResolver';
-import type { HalfDuplexChatAdapterAPIStrategy } from '../types/HalfDuplexChatAdapterAPIStrategy';
+import type { Strategy } from '../../types/HalfDuplexChatAdapterAPIStrategy';
 import type { JestMockOf } from '../types/JestMockOf';
 
 const server = setupServer();
@@ -19,7 +20,7 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe.each(['rest' as const, 'server sent events' as const])('Using "%s" transport', transport => {
-  let strategy: HalfDuplexChatAdapterAPIStrategy;
+  let strategy: Strategy;
 
   beforeEach(() => {
     strategy = {

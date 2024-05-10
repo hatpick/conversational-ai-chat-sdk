@@ -1,8 +1,9 @@
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
+
 import createHalfDuplexChatAdapter, { type TurnGenerator } from '../createHalfDuplexChatAdapter';
 import type { DefaultHttpResponseResolver } from '../private/types/DefaultHttpResponseResolver';
-import type { HalfDuplexChatAdapterAPIStrategy } from '../private/types/HalfDuplexChatAdapterAPIStrategy';
+import type { Strategy } from '../types/HalfDuplexChatAdapterAPIStrategy';
 import type { JestMockOf } from '../private/types/JestMockOf';
 
 const server = setupServer();
@@ -16,7 +17,7 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe.each([['rest' as const], ['server sent events' as const]])('Using "%s" transport', transport => {
-  let strategy: HalfDuplexChatAdapterAPIStrategy;
+  let strategy: Strategy;
 
   beforeEach(() => {
     strategy = {

@@ -11,7 +11,8 @@ import {
   type SpecialSchema,
   type StringSchema
 } from 'valibot';
-import { type HalfDuplexChatAdapterAPIStrategy } from './private/types/HalfDuplexChatAdapterAPIStrategy';
+
+import { type Strategy } from './types/HalfDuplexChatAdapterAPIStrategy';
 import { Transport } from './types/Transport';
 
 const PublishedBotAPIStrategyInitSchema = () =>
@@ -32,7 +33,7 @@ type PublishedBotAPIStrategyInit = Output<ReturnType<typeof PublishedBotAPIStrat
 
 const API_VERSION = '2022-03-01-preview';
 
-export default class PublishedBotAPIStrategy implements HalfDuplexChatAdapterAPIStrategy {
+export default class PublishedBotAPIStrategy implements Strategy {
   constructor({ botSchema, environmentEndpointURL, getTokenCallback, transport }: PublishedBotAPIStrategyInit) {
     this.#getTokenCallback = getTokenCallback;
     this.#transport = transport;
@@ -55,13 +56,11 @@ export default class PublishedBotAPIStrategy implements HalfDuplexChatAdapterAPI
     return new Headers({ authorization: `Bearer ${await this.#getTokenCallback()}` });
   }
 
-  public async prepareExecuteTurn(): ReturnType<HalfDuplexChatAdapterAPIStrategy['prepareExecuteTurn']> {
+  public async prepareExecuteTurn(): ReturnType<Strategy['prepareExecuteTurn']> {
     return { baseURL: this.#baseURL, headers: await this.#getHeaders(), transport: this.#transport };
   }
 
-  public async prepareStartNewConversation(): ReturnType<
-    HalfDuplexChatAdapterAPIStrategy['prepareStartNewConversation']
-  > {
+  public async prepareStartNewConversation(): ReturnType<Strategy['prepareStartNewConversation']> {
     return { baseURL: this.#baseURL, headers: await this.#getHeaders(), transport: this.#transport };
   }
 }

@@ -1,11 +1,12 @@
 import type { Activity } from 'botframework-directlinejs';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
+
 import DirectToEngineServerSentEventsChatAdapterAPI from '../DirectToEngineServerSentEventsChatAdapterAPI';
 import type { BotResponse } from '../types/BotResponse';
 import { parseConversationId } from '../types/ConversationId';
 import type { DefaultHttpResponseResolver } from '../types/DefaultHttpResponseResolver';
-import type { HalfDuplexChatAdapterAPIStrategy } from '../types/HalfDuplexChatAdapterAPIStrategy';
+import type { Strategy } from '../../types/HalfDuplexChatAdapterAPIStrategy';
 import type { JestMockOf } from '../types/JestMockOf';
 
 const server = setupServer();
@@ -19,7 +20,7 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe.each(['rest' as const, 'server sent events' as const])('Using "%s" transport', transport => {
-  let strategy: HalfDuplexChatAdapterAPIStrategy;
+  let strategy: Strategy;
 
   beforeEach(() => {
     strategy = {
@@ -68,8 +69,6 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
       });
 
       test('should not POST to /conversations', () => expect(httpPostConversation).toHaveBeenCalledTimes(0));
-
-      test('"conversationId" getter should return undefined', () => expect(adapter.conversationId).toBeUndefined());
 
       describe('after iterate once', () => {
         let iteratorResult: IteratorResult<Activity>;
@@ -143,8 +142,6 @@ data: end
             done: false,
             value: { from: { id: 'bot' }, text: 'Hello, World!', type: 'message' }
           }));
-
-        test('"conversationId" getter should return "c-00001"', () => expect(adapter.conversationId).toBe('c-00001'));
 
         describe('after iterate twice', () => {
           let iteratorResult: IteratorResult<Activity>;

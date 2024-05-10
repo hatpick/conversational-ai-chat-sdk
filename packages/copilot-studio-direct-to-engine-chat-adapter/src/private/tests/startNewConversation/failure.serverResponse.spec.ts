@@ -1,7 +1,8 @@
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
+
 import DirectToEngineServerSentEventsChatAdapterAPI from '../../DirectToEngineServerSentEventsChatAdapterAPI';
-import type { HalfDuplexChatAdapterAPIStrategy } from '../../types/HalfDuplexChatAdapterAPIStrategy';
+import type { Strategy } from '../../../types/HalfDuplexChatAdapterAPIStrategy';
 import type { DefaultHttpResponseResolver } from '../../types/DefaultHttpResponseResolver';
 import type { JestMockOf } from '../../types/JestMockOf';
 
@@ -16,7 +17,7 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 describe.each([['rest' as const], ['server sent events' as const]])('Using "%s" transport', transport => {
-  let strategy: HalfDuplexChatAdapterAPIStrategy;
+  let strategy: Strategy;
 
   beforeEach(() => {
     strategy = {
@@ -74,8 +75,6 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using "%s" 
         }`, () => expect(httpPostConversations).toHaveBeenCalledTimes(expectedNumCalled));
 
         test('should reject', () => expect(iteratePromise).rejects.toThrow());
-
-        test('"conversationId" getter should return undefined', () => expect(adapter.conversationId).toBeUndefined());
       });
     });
   });

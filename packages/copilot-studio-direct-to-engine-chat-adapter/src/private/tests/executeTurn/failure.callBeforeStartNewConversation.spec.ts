@@ -1,6 +1,7 @@
 import { setupServer } from 'msw/node';
+
+import type { Strategy } from '../../../types/HalfDuplexChatAdapterAPIStrategy';
 import DirectToEngineServerSentEventsChatAdapterAPI from '../../DirectToEngineServerSentEventsChatAdapterAPI';
-import type { HalfDuplexChatAdapterAPIStrategy } from '../../types/HalfDuplexChatAdapterAPIStrategy';
 
 const server = setupServer();
 
@@ -13,7 +14,7 @@ describe('When call executeTurn before start new conversation', () => {
   let executeTurnResult: ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['executeTurn']>;
 
   beforeEach(() => {
-    const strategy: HalfDuplexChatAdapterAPIStrategy = {
+    const strategy: Strategy = {
       async prepareExecuteTurn() {
         return Promise.resolve({ baseURL: new URL('http://test/?api=execute#2') });
       },
@@ -41,7 +42,5 @@ describe('When call executeTurn before start new conversation', () => {
 
     test('should reject', () =>
       expect(iteratePromise).rejects.toThrow('startNewConversation() must be called before executeTurn().'));
-
-    test('"conversationId" getter should return undefined', () => expect(adapter.conversationId).toBeUndefined());
   });
 });
