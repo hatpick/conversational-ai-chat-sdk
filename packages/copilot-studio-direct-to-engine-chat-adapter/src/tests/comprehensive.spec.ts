@@ -9,8 +9,8 @@ import createHalfDuplexChatAdapter, {
 import type { BotResponse } from '../private/types/BotResponse';
 import { parseConversationId } from '../private/types/ConversationId';
 import type { DefaultHttpResponseResolver } from '../private/types/DefaultHttpResponseResolver';
-import type { Strategy } from '../types/Strategy';
 import type { JestMockOf } from '../private/types/JestMockOf';
+import type { Strategy } from '../types/Strategy';
 
 const server = setupServer();
 
@@ -52,7 +52,7 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
     let httpPostConversation: JestMockOf<DefaultHttpResponseResolver>;
     let httpPostExecute: JestMockOf<DefaultHttpResponseResolver>;
 
-    beforeEach(async () => {
+    beforeEach(() => {
       httpPostContinue = jest.fn(NOT_MOCKED);
       httpPostConversation = jest.fn(NOT_MOCKED);
       httpPostExecute = jest.fn(NOT_MOCKED);
@@ -61,7 +61,7 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
       server.use(http.post('http://test/conversations/c-00001', httpPostExecute));
       server.use(http.post('http://test/conversations/c-00001/continue', httpPostContinue));
 
-      generator = await createHalfDuplexChatAdapter(strategy, {
+      generator = createHalfDuplexChatAdapter(strategy, {
         emitStartConversationEvent,
         retry: { factor: 1, minTimeout: 0 }
       })();
@@ -257,8 +257,8 @@ data: end
               describe('when execute turn and bot returned 3 activities in 3 turns', () => {
                 let generator: TurnGenerator;
 
-                beforeEach(async () => {
-                  generator = await (iteratorResult.value as ExecuteTurnFunction)({
+                beforeEach(() => {
+                  generator = (iteratorResult.value as ExecuteTurnFunction)({
                     from: { id: 'u-00001' },
                     text: 'Morning.',
                     type: 'message'

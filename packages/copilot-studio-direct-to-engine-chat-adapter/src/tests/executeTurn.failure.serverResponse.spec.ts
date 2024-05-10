@@ -10,8 +10,8 @@ import asyncGeneratorToArray from '../private/asyncGeneratorToArray';
 import type { BotResponse } from '../private/types/BotResponse';
 import { parseConversationId } from '../private/types/ConversationId';
 import type { DefaultHttpResponseResolver } from '../private/types/DefaultHttpResponseResolver';
-import type { Strategy } from '../types/Strategy';
 import type { JestMockOf } from '../private/types/JestMockOf';
+import type { Strategy } from '../types/Strategy';
 
 const server = setupServer();
 
@@ -52,14 +52,14 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
     let httpPostConversation: JestMockOf<DefaultHttpResponseResolver>;
     let httpPostExecute: JestMockOf<DefaultHttpResponseResolver>;
 
-    beforeEach(async () => {
+    beforeEach(() => {
       httpPostConversation = jest.fn(NOT_MOCKED);
       httpPostExecute = jest.fn(NOT_MOCKED);
 
       server.use(http.post('http://test/conversations', httpPostConversation));
       server.use(http.post('http://test/conversations/c-00001', httpPostExecute));
 
-      generator = await createHalfDuplexChatAdapter(strategy, {
+      generator = createHalfDuplexChatAdapter(strategy, {
         emitStartConversationEvent,
         retry: { factor: 1, minTimeout: 0 }
       })();
@@ -107,8 +107,8 @@ data: end
       ])('when execute turn and %s', (_, response, { expectedNumCalled }) => {
         let generator: TurnGenerator;
 
-        beforeEach(async () => {
-          generator = await executeTurn({
+        beforeEach(() => {
+          generator = executeTurn({
             from: { id: 'u-00001' },
             text: 'Aloha!',
             type: 'message'

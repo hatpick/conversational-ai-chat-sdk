@@ -4,7 +4,7 @@ import DirectToEngineServerSentEventsChatAdapterAPI from './private/DirectToEngi
 import { type HalfDuplexChatAdapterAPI } from './private/types/HalfDuplexChatAdapterAPI';
 import { type Strategy } from './types/Strategy';
 
-export type ExecuteTurnFunction = (activity: Activity) => Promise<TurnGenerator>;
+export type ExecuteTurnFunction = (activity: Activity) => TurnGenerator;
 
 export type CreateHalfDuplexChatAdapterInit = {
   emitStartConversationEvent?: boolean;
@@ -25,14 +25,14 @@ export type TurnGenerator = AsyncGenerator<Activity, ExecuteTurnFunction, undefi
 const createExecuteTurn = (api: HalfDuplexChatAdapterAPI): ExecuteTurnFunction => {
   let obsoleted = false;
 
-  return async (activity: Activity): Promise<TurnGenerator> => {
+  return (activity: Activity): TurnGenerator => {
     if (obsoleted) {
       throw new Error('This executeTurn() function is obsoleted. Please use a new one.');
     }
 
     obsoleted = true;
 
-    const activities = await api.executeTurn(activity);
+    const activities = api.executeTurn(activity);
 
     return (async function* () {
       yield* activities;
@@ -43,13 +43,13 @@ const createExecuteTurn = (api: HalfDuplexChatAdapterAPI): ExecuteTurnFunction =
 };
 
 export default function createHalfDuplexChatAdapter(strategy: Strategy, init: CreateHalfDuplexChatAdapterInit = {}) {
-  return async (): Promise<TurnGenerator> => {
+  return (): TurnGenerator => {
     const api = new DirectToEngineServerSentEventsChatAdapterAPI(strategy, {
       retry: init.retry,
       telemetry: init.telemetry
     });
 
-    const activities = await api.startNewConversation(init?.emitStartConversationEvent ?? true);
+    const activities = api.startNewConversation(init?.emitStartConversationEvent ?? true);
 
     return (async function* (): TurnGenerator {
       yield* activities;

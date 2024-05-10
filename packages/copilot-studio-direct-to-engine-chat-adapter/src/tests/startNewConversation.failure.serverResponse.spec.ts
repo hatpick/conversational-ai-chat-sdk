@@ -3,8 +3,8 @@ import { setupServer } from 'msw/node';
 
 import createHalfDuplexChatAdapter, { type TurnGenerator } from '../createHalfDuplexChatAdapter';
 import type { DefaultHttpResponseResolver } from '../private/types/DefaultHttpResponseResolver';
-import type { Strategy } from '../types/Strategy';
 import type { JestMockOf } from '../private/types/JestMockOf';
+import type { Strategy } from '../types/Strategy';
 
 const server = setupServer();
 
@@ -49,12 +49,12 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using "%s" 
       let generator: TurnGenerator;
       let httpPostConversations: JestMockOf<DefaultHttpResponseResolver>;
 
-      beforeEach(async () => {
+      beforeEach(() => {
         httpPostConversations = jest.fn(NOT_MOCKED);
 
         server.use(http.post('http://test/conversations', httpPostConversations));
 
-        generator = await createHalfDuplexChatAdapter(strategy, {
+        generator = createHalfDuplexChatAdapter(strategy, {
           emitStartConversationEvent,
           retry: { factor: 1, minTimeout: 0 }
         })();
