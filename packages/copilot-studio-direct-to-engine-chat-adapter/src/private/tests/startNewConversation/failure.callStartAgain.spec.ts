@@ -69,7 +69,7 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
               conversationId: 'c-00001'
             } as BotResponse)
           );
-        } else if (transport === 'server sent events') {
+        } else {
           httpPostConversation.mockImplementationOnce(
             () =>
               new HttpResponse(
@@ -93,37 +93,50 @@ data: end
       test('should receive greeting activities', () =>
         expect(activities).toEqual([{ text: 'Hello, World!', type: 'message' }]));
 
-      describe.each([
-        ['server closed connection', HttpResponse.error(), { expectedNumCalled: 5 }],
-        ['server returned 400', new HttpResponse(undefined, { status: 400 }), { expectedNumCalled: 1 }],
-        ['server returned 500', new HttpResponse(undefined, { status: 500 }), { expectedNumCalled: 5 }]
-      ])('when execute turn and %s', (_, response, { expectedNumCalled }) => {
-        let executeTurnResult: ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['executeTurn']>;
+      describe('when call startNewConversation again', () => {
+        let startNewConversationResult: ReturnType<
+          DirectToEngineServerSentEventsChatAdapterAPI['startNewConversation']
+        >;
 
         beforeEach(() => {
-          executeTurnResult = adapter.executeTurn({
-            from: { id: 'u-00001' },
-            text: 'Aloha!',
-            type: 'message'
-          });
+          if (transport === 'rest') {
+            httpPostConversation.mockImplementationOnce(() =>
+              HttpResponse.json({
+                action: 'waiting',
+                activities: [{ text: 'Aloha!', type: 'message' }],
+                conversationId: 'c-00001'
+              } as BotResponse)
+            );
+          } else if (transport === 'server sent events') {
+            httpPostConversation.mockImplementationOnce(
+              () =>
+                new HttpResponse(
+                  Buffer.from(`event: activity
+data: { "text": "Aloha!", "type": "message" }
+
+event: end
+data: end
+
+`),
+                  { headers: { 'content-type': 'text/event-stream', 'x-ms-conversationid': 'c-00001' } }
+                )
+            );
+          }
+
+          startNewConversationResult = adapter.startNewConversation(emitStartConversationEvent);
         });
 
         describe('when iterate', () => {
           let iteratePromise: Promise<unknown>;
 
           beforeEach(async () => {
-            httpPostExecute.mockImplementation(() => response);
-
-            iteratePromise = executeTurnResult.next();
+            iteratePromise = startNewConversationResult.next();
 
             await iteratePromise.catch(() => {});
           });
 
-          test(`should have POST to /conversations ${
-            expectedNumCalled === 1 ? 'once' : `${expectedNumCalled} times`
-          }`, () => expect(httpPostExecute).toHaveBeenCalledTimes(expectedNumCalled));
-
-          test('should reject', () => expect(iteratePromise).rejects.toThrow());
+          test('should reject', () =>
+            expect(iteratePromise).rejects.toThrow('startNewConversation() cannot be called more than once.'));
         });
       });
     });

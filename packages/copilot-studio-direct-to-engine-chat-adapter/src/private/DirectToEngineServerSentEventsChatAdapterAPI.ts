@@ -11,7 +11,7 @@ import { type Transport } from '../types/Transport';
 import iterateReadableStream from './iterateReadableStream';
 import { resolveURLWithQueryAndHash } from './private/resolveURLWithQueryAndHash';
 import { parseBotResponse, type BotResponse } from './types/BotResponse';
-import { type ConversationId } from './types/ConversationId';
+import { parseConversationId, type ConversationId } from './types/ConversationId';
 import { type HalfDuplexChatAdapterAPI } from './types/HalfDuplexChatAdapterAPI';
 import { type HalfDuplexChatAdapterAPIStrategy } from './types/HalfDuplexChatAdapterAPIStrategy';
 
@@ -64,6 +64,10 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
 
   public startNewConversation(emitStartConversationEvent: boolean): AsyncIterableIterator<Activity> {
     return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
+      if (this.#conversationId) {
+        throw new Error('startNewConversation() cannot be called more than once.');
+      }
+
       const { baseURL, body, headers, transport } = await this.#strategy.prepareStartNewConversation();
 
       yield* this.#post(baseURL, { body, headers, initialBody: { emitStartConversationEvent }, transport });
@@ -235,6 +239,12 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
             throw new Error(`Server did not respond with body.`);
           }
 
+          const conversationId = currentResponse.headers.get('x-ms-conversationid');
+
+          if (conversationId) {
+            this.#conversationId = parseConversationId(conversationId);
+          }
+
           return currentResponse.body;
         },
         {
@@ -275,7 +285,8 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
               } else if (event === 'activity') {
                 const activity = JSON.parse(data);
 
-                if (!this.#conversationId) {
+                // TODO: Should be replaced by something in HTTP header or "init" event.
+                if (!this.#conversationId && activity.conversation?.id) {
                   this.#conversationId = activity.conversation.id;
                 }
 

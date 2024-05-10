@@ -1,11 +1,11 @@
 import type { Activity } from 'botframework-directlinejs';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
-import DirectToEngineServerSentEventsChatAdapterAPI from '../../DirectToEngineServerSentEventsChatAdapterAPI';
-import type { BotResponse } from '../../types/BotResponse';
-import type { HalfDuplexChatAdapterAPIStrategy } from '../../types/HalfDuplexChatAdapterAPIStrategy';
-import type { DefaultHttpResponseResolver } from '../types/DefaultHttpResponseResolver';
-import type { JestMockOf } from '../types/JestMockOf';
+import DirectToEngineServerSentEventsChatAdapterAPI from '../DirectToEngineServerSentEventsChatAdapterAPI';
+import type { BotResponse } from '../types/BotResponse';
+import type { HalfDuplexChatAdapterAPIStrategy } from '../types/HalfDuplexChatAdapterAPIStrategy';
+import type { DefaultHttpResponseResolver } from './types/DefaultHttpResponseResolver';
+import type { JestMockOf } from './types/JestMockOf';
 
 const server = setupServer();
 
@@ -74,22 +74,22 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
             httpPostConversation.mockImplementationOnce(() =>
               HttpResponse.json({
                 action: 'waiting',
-                activities: [{ conversation: { id: 'c-00001' }, text: 'Hello, World!', type: 'message' }],
+                activities: [{ text: 'Hello, World!', type: 'message' }],
                 conversationId: 'c-00001'
               } as BotResponse)
             );
-          } else {
+          } else if (transport === 'server sent events') {
             httpPostConversation.mockImplementationOnce(
               () =>
                 new HttpResponse(
                   Buffer.from(`event: activity
-data: { "conversation": { "id": "c-00001" }, "text": "Hello, World!", "type": "message" }
+data: { "text": "Hello, World!", "type": "message" }
 
 event: end
 data: end
 
 `),
-                  { headers: { 'content-type': 'text/event-stream' } }
+                  { headers: { 'content-type': 'text/event-stream', 'x-ms-conversationid': 'c-00001' } }
                 )
             );
           }
@@ -102,7 +102,7 @@ data: end
         test('should return the first activity', () =>
           expect(iteratorResult).toEqual({
             done: false,
-            value: { conversation: { id: 'c-00001' }, text: 'Hello, World!', type: 'message' }
+            value: { text: 'Hello, World!', type: 'message' }
           }));
 
         describe('after iterate twice', () => {
@@ -129,7 +129,7 @@ data: end
                   httpPostExecute.mockImplementationOnce(() =>
                     HttpResponse.json({
                       action: 'waiting',
-                      activities: [{ conversation: { id: 'c-00001' }, text: 'Good morning!', type: 'message' }]
+                      activities: [{ text: 'Good morning!', type: 'message' }]
                     } as BotResponse)
                   );
                 } else if (transport === 'server sent events') {
@@ -137,7 +137,7 @@ data: end
                     () =>
                       new HttpResponse(
                         Buffer.from(`event: activity
-data: { "conversation": { "id": "c-00001" }, "text": "Good morning!", "type": "message" }
+data: { "text": "Good morning!", "type": "message" }
 
 event: end
 data: end
@@ -154,7 +154,7 @@ data: end
               test('should return the third activity', () =>
                 expect(iteratorResult).toEqual({
                   done: false,
-                  value: { conversation: { id: 'c-00001' }, text: 'Good morning!', type: 'message' }
+                  value: { text: 'Good morning!', type: 'message' }
                 }));
 
               describe('after iterate twice', () => {

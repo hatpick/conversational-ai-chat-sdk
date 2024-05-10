@@ -78,25 +78,25 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
             httpPostConversation.mockImplementationOnce(() =>
               HttpResponse.json({
                 action: 'continue',
-                activities: [{ conversation: { id: 'c-00001' }, text: 'Hello, World!', type: 'message' }],
+                activities: [{ text: 'Hello, World!', type: 'message' }],
                 conversationId: 'c-00001'
               } as BotResponse)
             );
-          } else {
+          } else if (transport === 'server sent events') {
             httpPostConversation.mockImplementationOnce(
               () =>
                 new HttpResponse(
                   Buffer.from(`event: activity
-data: { "conversation": { "id": "c-00001" }, "text": "Hello, World!", "type": "message" }
+data: { "text": "Hello, World!", "type": "message" }
 
 event: activity
-data: { "conversation": { "id": "c-00001" }, "text": "Aloha!", "type": "message" }
+data: { "text": "Aloha!", "type": "message" }
 
 event: end
 data: end
 
 `),
-                  { headers: { 'content-type': 'text/event-stream' } }
+                  { headers: { 'content-type': 'text/event-stream', 'x-ms-conversationid': 'c-00001' } }
                 )
             );
           }
@@ -137,7 +137,7 @@ data: end
         test('should return the first activity', () =>
           expect(iteratorResult).toEqual({
             done: false,
-            value: { conversation: { id: 'c-00001' }, text: 'Hello, World!', type: 'message' }
+            value: { text: 'Hello, World!', type: 'message' }
           }));
 
         test('"conversationId" getter should return "c-00001"', () => expect(adapter.conversationId).toBe('c-00001'));
@@ -150,7 +150,7 @@ data: end
               httpPostContinue.mockImplementationOnce(() =>
                 HttpResponse.json({
                   action: 'waiting',
-                  activities: [{ conversation: { id: 'c-00001' }, text: 'Aloha!', type: 'message' }]
+                  activities: [{ text: 'Aloha!', type: 'message' }]
                 } as BotResponse)
               );
             }
@@ -187,7 +187,7 @@ data: end
           test('should return the second activity', () =>
             expect(iteratorResult).toEqual({
               done: false,
-              value: { conversation: { id: 'c-00001' }, text: 'Aloha!', type: 'message' }
+              value: { text: 'Aloha!', type: 'message' }
             }));
 
           describe('after iterate the third time', () => {
@@ -216,7 +216,7 @@ data: end
                     httpPostExecute.mockImplementationOnce(() =>
                       HttpResponse.json({
                         action: 'continue',
-                        activities: [{ conversation: { id: 'c-00001' }, text: 'Good morning!', type: 'message' }]
+                        activities: [{ text: 'Good morning!', type: 'message' }]
                       } as BotResponse)
                     );
                   } else if (transport === 'server sent events') {
@@ -224,10 +224,10 @@ data: end
                       () =>
                         new HttpResponse(
                           Buffer.from(`event: activity
-data: { "conversation": { "id": "c-00001" }, "text": "Good morning!", "type": "message" }
+data: { "text": "Good morning!", "type": "message" }
 
 event: activity
-data: { "conversation": { "id": "c-00001" }, "text": "Goodbye!", "type": "message" }
+data: { "text": "Goodbye!", "type": "message" }
 
 event: end
 data: end
@@ -281,7 +281,7 @@ data: end
                 test('should return the third activity', () =>
                   expect(iteratorResult).toEqual({
                     done: false,
-                    value: { conversation: { id: 'c-00001' }, text: 'Good morning!', type: 'message' }
+                    value: { text: 'Good morning!', type: 'message' }
                   }));
 
                 describe('after iterate twice', () => {
@@ -292,7 +292,7 @@ data: end
                       httpPostContinue.mockImplementationOnce(() =>
                         HttpResponse.json({
                           action: 'waiting',
-                          activities: [{ conversation: { id: 'c-00001' }, text: 'Goodbye!', type: 'message' }]
+                          activities: [{ text: 'Goodbye!', type: 'message' }]
                         } as BotResponse)
                       );
                     }
@@ -336,7 +336,7 @@ data: end
                   test('should return the fourth activity', () =>
                     expect(iteratorResult).toEqual({
                       done: false,
-                      value: { conversation: { id: 'c-00001' }, text: 'Goodbye!', type: 'message' }
+                      value: { text: 'Goodbye!', type: 'message' }
                     }));
 
                   describe('after iterate the third time', () => {
