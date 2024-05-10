@@ -90,8 +90,8 @@ describe('with a TurnGenerator', () => {
         describe('when turn ended', () => {
           beforeEach(() => incomingActivityDeferred.resolve(END_TURN));
 
-          test('should call the first post activity observer', () =>
-            expect(firstPostActivityObserver).toHaveBeenCalledTimes(1));
+          test('should not call the first post activity observer', () =>
+            expect(firstPostActivityObserver).toHaveBeenCalledTimes(0));
           test('should not call the second post activity observer', () =>
             expect(secondPostActivityObserver).toHaveBeenCalledTimes(0));
 
@@ -99,6 +99,11 @@ describe('with a TurnGenerator', () => {
             beforeEach(() =>
               incomingActivityDeferred.resolve({ from: { id: 'bot' }, text: 'Goodbye.', type: 'message' })
             );
+
+            test('should call the first post activity observer', () =>
+              expect(firstPostActivityObserver).toHaveBeenCalledTimes(1));
+            test('should not call the second post activity observer', () =>
+              expect(secondPostActivityObserver).toHaveBeenCalledTimes(0));
 
             describe('should call the activity observer', () => {
               test('twice', () => expect(activityObserver).toHaveBeenCalledTimes(3));

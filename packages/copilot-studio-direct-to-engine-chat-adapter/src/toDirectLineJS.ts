@@ -30,9 +30,9 @@ export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): Di
       connectionStatusDeferredObservable.next(0);
       connectionStatusDeferredObservable.next(1);
 
-      let isConnected = false;
       let activities: AsyncIterable<Activity>;
       let turnGenerator: TurnGenerator = halfDuplexChatAdapter;
+      let handleIncomingActivityOnce: (() => void) | undefined = () => connectionStatusDeferredObservable.next(2);
 
       for (;;) {
         let getExecuteTurn: () => ExecuteTurnFunction;
@@ -40,10 +40,8 @@ export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): Di
         [activities, getExecuteTurn] = iterateWithReturnValue(turnGenerator);
 
         for await (const activity of activities) {
-          if (!isConnected) {
-            isConnected = true;
-            connectionStatusDeferredObservable.next(2);
-          }
+          handleIncomingActivityOnce?.();
+          handleIncomingActivityOnce = undefined;
 
           observer.next(patchActivity(activity));
         }
@@ -53,14 +51,16 @@ export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): Di
 
         postActivityDeferred = new DeferredPromise();
 
-        const activityId = v4() as ActivityId;
-
         turnGenerator = executeTurn(activity);
 
-        // We assume calling executeTurn() will always send the message successfully.
-        // Better, the bot should always send us a "typing" activity before sending us any "message" activity.
-        observer.next(patchActivity({ ...activity, id: activityId }));
-        callback(activityId);
+        // We will generate the activity ID and echoback the activity only when the first incoming activity arrived.
+        // This make sure the bot acknowledged the outgoing activity before we echoback the activity.
+        handleIncomingActivityOnce = () => {
+          const activityId = v4() as ActivityId;
+
+          observer.next(patchActivity({ ...activity, id: activityId }));
+          callback(activityId);
+        };
       }
     })();
   });

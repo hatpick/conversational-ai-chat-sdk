@@ -108,12 +108,15 @@ describe('with a TurnGenerator', () => {
               }));
           });
 
-          test('should call the post activity observer', () => expect(postActivityObserver).toHaveBeenCalledTimes(1));
+          test('should not call the post activity observer', () =>
+            expect(postActivityObserver).toHaveBeenCalledTimes(0));
 
           describe('when receive activity', () => {
             beforeEach(() =>
               incomingActivityDeferred.resolve({ from: { id: 'bot' }, text: 'Good morning.', type: 'message' })
             );
+
+            test('should call the post activity observer', () => expect(postActivityObserver).toHaveBeenCalledTimes(1));
 
             describe('should call activity observer', () => {
               test('twice', () => expect(activityObserver).toHaveBeenCalledTimes(3));
@@ -162,13 +165,16 @@ describe('with a TurnGenerator', () => {
                     }));
                 });
 
-                test('should call the post activity observer', () =>
-                  expect(postActivityObserver).toHaveBeenCalledTimes(1));
+                test('should not call the post activity observer', () =>
+                  expect(postActivityObserver).toHaveBeenCalledTimes(0));
 
                 describe('when receive activity', () => {
                   beforeEach(() =>
                     incomingActivityDeferred.resolve({ from: { id: 'bot' }, text: 'Bye.', type: 'message' })
                   );
+
+                  test('should call the post activity observer', () =>
+                    expect(postActivityObserver).toHaveBeenCalledTimes(1));
 
                   describe('should call the activity observer', () => {
                     test('twice', () => expect(activityObserver).toHaveBeenCalledTimes(5));
