@@ -1,4 +1,4 @@
-import iterateWithReturnValue from './iterateWithReturnValueAsync';
+import iterateWithReturnValue from './iterateWithReturnValue';
 
 export default async function asyncGeneratorToArray<T, U>(asyncGenerator: AsyncGenerator<T, U>): Promise<[T[], U]> {
   const array: T[] = [];
