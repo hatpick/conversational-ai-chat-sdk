@@ -59,7 +59,7 @@ export default class TestCanvasBotAPIStrategy implements HalfDuplexChatAdapterAP
   #transport: Transport;
 
   async #getHeaders() {
-    return { authorization: `Bearer ${await this.#getTokenCallback()}` };
+    return new Headers({ authorization: `Bearer ${await this.#getTokenCallback()}` });
   }
 
   public async prepareExecuteTurn(): ReturnType<HalfDuplexChatAdapterAPIStrategy['prepareExecuteTurn']> {

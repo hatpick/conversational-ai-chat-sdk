@@ -53,7 +53,7 @@ export default class PublishedBotAPIStrategy implements HalfDuplexChatAdapterAPI
   #transport: Transport;
 
   async #getHeaders() {
-    return { authorization: `Bearer ${await this.#getTokenCallback()}` };
+    return new Headers({ authorization: `Bearer ${await this.#getTokenCallback()}` });
   }
 
   public async prepareExecuteTurn(): ReturnType<HalfDuplexChatAdapterAPIStrategy['prepareExecuteTurn']> {
