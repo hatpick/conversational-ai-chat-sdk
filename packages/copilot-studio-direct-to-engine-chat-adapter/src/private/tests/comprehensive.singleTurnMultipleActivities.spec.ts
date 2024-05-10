@@ -59,7 +59,7 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
       adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy, { retry: { factor: 1, minTimeout: 0 } });
     });
 
-    describe('When conversation started and bot returned with 1 activity in 1 turn', () => {
+    describe('When conversation started and bot returned with 2 activities in 1 turn', () => {
       let startNewConversationResult: ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['startNewConversation']>;
 
       beforeEach(() => {
@@ -74,7 +74,10 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
             httpPostConversation.mockImplementationOnce(() =>
               HttpResponse.json({
                 action: 'waiting',
-                activities: [{ text: 'Hello, World!', type: 'message' }],
+                activities: [
+                  { text: 'Hello, World!', type: 'message' },
+                  { text: 'Aloha!', type: 'message' }
+                ],
                 conversationId: 'c-00001'
               } as BotResponse)
             );
@@ -84,6 +87,9 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
                 new HttpResponse(
                   Buffer.from(`event: activity
 data: { "text": "Hello, World!", "type": "message" }
+
+event: activity
+data: { "text": "Aloha!", "type": "message" }
 
 event: end
 data: end
@@ -112,59 +118,93 @@ data: end
             iteratorResult = await startNewConversationResult.next();
           });
 
-          test('should complete', () => expect(iteratorResult).toEqual({ done: true, value: undefined }));
+          test('should return the first activity', () =>
+            expect(iteratorResult).toEqual({
+              done: false,
+              value: { text: 'Aloha!', type: 'message' }
+            }));
 
-          describe('when execute turn and bot returned 1 activity in 1 turn', () => {
-            let executeTurnResult: ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['executeTurn']>;
+          describe('after iterate the third time', () => {
+            let iteratorResult: IteratorResult<Activity>;
 
-            beforeEach(() => {
-              executeTurnResult = adapter.executeTurn({ from: { id: 'u-00001' }, text: 'Morning.', type: 'message' });
+            beforeEach(async () => {
+              iteratorResult = await startNewConversationResult.next();
             });
 
-            describe('after iterate once', () => {
-              let iteratorResult: IteratorResult<Activity>;
+            test('should complete', () => expect(iteratorResult).toEqual({ done: true, value: undefined }));
 
-              beforeEach(async () => {
-                if (transport === 'rest') {
-                  httpPostExecute.mockImplementationOnce(() =>
-                    HttpResponse.json({
-                      action: 'waiting',
-                      activities: [{ text: 'Good morning!', type: 'message' }]
-                    } as BotResponse)
-                  );
-                } else if (transport === 'server sent events') {
-                  httpPostExecute.mockImplementationOnce(
-                    () =>
-                      new HttpResponse(
-                        Buffer.from(`event: activity
+            describe('when execute turn and bot returned 2 activities in 1 turn', () => {
+              let executeTurnResult: ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['executeTurn']>;
+
+              beforeEach(() => {
+                executeTurnResult = adapter.executeTurn({ from: { id: 'u-00001' }, text: 'Morning.', type: 'message' });
+              });
+
+              describe('after iterate once', () => {
+                let iteratorResult: IteratorResult<Activity>;
+
+                beforeEach(async () => {
+                  if (transport === 'rest') {
+                    httpPostExecute.mockImplementationOnce(() =>
+                      HttpResponse.json({
+                        action: 'waiting',
+                        activities: [
+                          { text: 'Good morning!', type: 'message' },
+                          { text: 'Goodbye!', type: 'message' }
+                        ]
+                      } as BotResponse)
+                    );
+                  } else if (transport === 'server sent events') {
+                    httpPostExecute.mockImplementationOnce(
+                      () =>
+                        new HttpResponse(
+                          Buffer.from(`event: activity
 data: { "text": "Good morning!", "type": "message" }
+
+event: activity
+data: { "text": "Goodbye!", "type": "message" }
 
 event: end
 data: end
 
 `),
-                        { headers: { 'content-type': 'text/event-stream' } }
-                      )
-                  );
-                }
+                          { headers: { 'content-type': 'text/event-stream' } }
+                        )
+                    );
+                  }
 
-                iteratorResult = await executeTurnResult.next();
-              });
-
-              test('should return the third activity', () =>
-                expect(iteratorResult).toEqual({
-                  done: false,
-                  value: { text: 'Good morning!', type: 'message' }
-                }));
-
-              describe('after iterate twice', () => {
-                let iteratorResult: IteratorResult<Activity>;
-
-                beforeEach(async () => {
                   iteratorResult = await executeTurnResult.next();
                 });
 
-                test('should complete', () => expect(iteratorResult).toEqual({ done: true, value: undefined }));
+                test('should return the third activity', () =>
+                  expect(iteratorResult).toEqual({
+                    done: false,
+                    value: { text: 'Good morning!', type: 'message' }
+                  }));
+
+                describe('after iterate twice', () => {
+                  let iteratorResult: IteratorResult<Activity>;
+
+                  beforeEach(async () => {
+                    iteratorResult = await executeTurnResult.next();
+                  });
+
+                  test('should return the fourth activity', () =>
+                    expect(iteratorResult).toEqual({
+                      done: false,
+                      value: { text: 'Goodbye!', type: 'message' }
+                    }));
+
+                  describe('after iterate the third time', () => {
+                    let iteratorResult: IteratorResult<Activity>;
+
+                    beforeEach(async () => {
+                      iteratorResult = await executeTurnResult.next();
+                    });
+
+                    test('should complete', () => expect(iteratorResult).toEqual({ done: true, value: undefined }));
+                  });
+                });
               });
             });
           });
