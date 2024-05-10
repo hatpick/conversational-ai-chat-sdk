@@ -8,6 +8,7 @@ export type ExecuteTurnFunction = (activity: Activity) => TurnGenerator;
 
 export type CreateHalfDuplexChatAdapterInit = {
   emitStartConversationEvent?: boolean;
+  locale?: string;
   retry?:
     | Readonly<{
         factor?: number | undefined;
@@ -49,7 +50,10 @@ export default function createHalfDuplexChatAdapter(strategy: Strategy, init: Cr
       telemetry: init.telemetry
     });
 
-    const activities = api.startNewConversation(init?.emitStartConversationEvent ?? true);
+    const activities = api.startNewConversation({
+      emitStartConversationEvent: init.emitStartConversationEvent ?? true,
+      locale: init.locale
+    });
 
     return (async function* (): TurnGenerator {
       yield* activities;

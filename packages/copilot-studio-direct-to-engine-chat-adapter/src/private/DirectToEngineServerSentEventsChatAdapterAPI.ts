@@ -8,7 +8,7 @@ import iterateReadableStream from './iterateReadableStream';
 import { resolveURLWithQueryAndHash } from './resolveURLWithQueryAndHash';
 import { parseBotResponse, type BotResponse } from './types/BotResponse';
 import { parseConversationId, type ConversationId } from './types/ConversationId';
-import { type HalfDuplexChatAdapterAPI } from './types/HalfDuplexChatAdapterAPI';
+import { type HalfDuplexChatAdapterAPI, type StartNewConversationInit } from './types/HalfDuplexChatAdapterAPI';
 
 export type DirectToEngineServerSentEventsChatAdapterAPIInit = {
   retry?:
@@ -51,7 +51,10 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
   #strategy: Strategy;
   #telemetry: DirectToEngineServerSentEventsChatAdapterAPIInit['telemetry'];
 
-  public startNewConversation(emitStartConversationEvent: boolean): AsyncIterableIterator<Activity> {
+  public startNewConversation({
+    emitStartConversationEvent,
+    locale
+  }: StartNewConversationInit): AsyncIterableIterator<Activity> {
     if (this.#busy) {
       throw new Error('Another operation is in progress.');
     }
@@ -66,7 +69,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
 
         const { baseURL, body, headers, transport } = await this.#strategy.prepareStartNewConversation();
 
-        yield* this.#post(baseURL, { body, headers, initialBody: { emitStartConversationEvent }, transport });
+        yield* this.#post(baseURL, { body, headers, initialBody: { emitStartConversationEvent, locale }, transport });
       } finally {
         this.#busy = false;
       }

@@ -2,12 +2,12 @@ import type { Activity } from 'botframework-directlinejs';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
+import type { Strategy } from '../../../types/Strategy';
 import DirectToEngineServerSentEventsChatAdapterAPI from '../../DirectToEngineServerSentEventsChatAdapterAPI';
 import asyncIterableToArray from '../../asyncIterableToArray';
 import type { BotResponse } from '../../types/BotResponse';
 import { parseConversationId } from '../../types/ConversationId';
 import type { DefaultHttpResponseResolver } from '../../types/DefaultHttpResponseResolver';
-import type { Strategy } from '../../../types/Strategy';
 import type { JestMockOf } from '../../types/JestMockOf';
 
 const server = setupServer();
@@ -87,7 +87,7 @@ data: end
           );
         }
 
-        const startNewConversationResult = adapter.startNewConversation(emitStartConversationEvent);
+        const startNewConversationResult = adapter.startNewConversation({ emitStartConversationEvent });
 
         activities = await asyncIterableToArray(startNewConversationResult);
       });

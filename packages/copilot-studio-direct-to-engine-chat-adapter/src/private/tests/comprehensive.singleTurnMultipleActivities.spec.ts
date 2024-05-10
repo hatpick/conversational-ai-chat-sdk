@@ -2,11 +2,11 @@ import type { Activity } from 'botframework-directlinejs';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
+import type { Strategy } from '../../types/Strategy';
 import DirectToEngineServerSentEventsChatAdapterAPI from '../DirectToEngineServerSentEventsChatAdapterAPI';
 import type { BotResponse } from '../types/BotResponse';
 import { parseConversationId } from '../types/ConversationId';
 import type { DefaultHttpResponseResolver } from '../types/DefaultHttpResponseResolver';
-import type { Strategy } from '../../types/Strategy';
 import type { JestMockOf } from '../types/JestMockOf';
 
 const server = setupServer();
@@ -65,7 +65,7 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
       let startNewConversationResult: ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['startNewConversation']>;
 
       beforeEach(() => {
-        startNewConversationResult = adapter.startNewConversation(emitStartConversationEvent);
+        startNewConversationResult = adapter.startNewConversation({ emitStartConversationEvent });
       });
 
       describe('after iterate once', () => {

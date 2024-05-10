@@ -90,7 +90,7 @@ data: end
           );
         }
 
-        const startNewConversationResult = adapter.startNewConversation(emitStartConversationEvent);
+        const startNewConversationResult = adapter.startNewConversation({ emitStartConversationEvent });
 
         activities = await asyncIterableToArray(startNewConversationResult);
       });

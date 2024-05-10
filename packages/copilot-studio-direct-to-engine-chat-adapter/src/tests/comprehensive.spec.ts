@@ -63,6 +63,7 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
 
       generator = createHalfDuplexChatAdapter(strategy, {
         emitStartConversationEvent,
+        locale: 'ja-JP',
         retry: { factor: 1, minTimeout: 0 }
       })();
     });
@@ -130,10 +131,11 @@ data: end
           test('without header "x-ms-conversationid"', () =>
             expect(httpPostConversation.mock.calls[0][0].request.headers.has('x-ms-conversationid')).toBe(false));
 
-          test(`with JSON body of { dummy: "dummy", emitStartConversationEvent: ${emitStartConversationEvent} }`, () =>
+          test(`with JSON body of { dummy: "dummy", emitStartConversationEvent: ${emitStartConversationEvent}, locale: 'ja-JP' }`, () =>
             expect(httpPostConversation.mock.calls[0][0].request.json()).resolves.toEqual({
               dummy: 'dummy',
-              emitStartConversationEvent
+              emitStartConversationEvent,
+              locale: 'ja-JP'
             }));
         });
 

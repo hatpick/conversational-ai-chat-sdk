@@ -56,7 +56,7 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using "%s" 
         server.use(http.post('http://test/conversations', httpPostConversations));
 
         adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy, { retry: { factor: 1, minTimeout: 0 } });
-        startNewConversationResult = adapter.startNewConversation(emitStartConversationEvent);
+        startNewConversationResult = adapter.startNewConversation({ emitStartConversationEvent });
       });
 
       describe('when iterate', () => {
