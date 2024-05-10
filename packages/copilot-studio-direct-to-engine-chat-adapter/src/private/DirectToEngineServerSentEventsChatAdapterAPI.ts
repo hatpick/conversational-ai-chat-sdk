@@ -9,7 +9,7 @@ import { type TelemetryClient } from 'powerva-turn-based-chat-adapter-framework'
 
 import { type Transport } from '../types/Transport';
 import iterateReadableStream from './iterateReadableStream';
-import { resolveURLWithQueryAndHash } from './private/resolveURLWithQueryAndHash';
+import { resolveURLWithQueryAndHash } from './resolveURLWithQueryAndHash';
 import { parseBotResponse, type BotResponse } from './types/BotResponse';
 import { parseConversationId, type ConversationId } from './types/ConversationId';
 import { type HalfDuplexChatAdapterAPI } from './types/HalfDuplexChatAdapterAPI';
