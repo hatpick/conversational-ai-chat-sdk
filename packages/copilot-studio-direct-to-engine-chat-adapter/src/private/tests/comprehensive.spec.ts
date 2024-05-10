@@ -17,7 +17,7 @@ beforeAll(() => server.listen());
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
-describe.each(['rest' as const, 'server sent events' as const])('With %s', transport => {
+describe.each(['rest' as const, 'server sent events' as const])('Using "%s" transport', transport => {
   let strategy: HalfDuplexChatAdapterAPIStrategy;
 
   beforeEach(() => {
@@ -56,40 +56,13 @@ describe.each(['rest' as const, 'server sent events' as const])('With %s', trans
       server.use(http.post('http://test/conversations/c-00001', httpPostExecute));
       server.use(http.post('http://test/conversations/c-00001/continue', httpPostContinue));
 
-      adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy);
+      adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy, { retry: { factor: 1, minTimeout: 0 } });
     });
 
     describe('When conversation started and bot returned with 2 activities in 2 turns', () => {
       let startNewConversationResult: ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['startNewConversation']>;
 
       beforeEach(() => {
-        if (transport === 'rest') {
-          httpPostConversation.mockImplementationOnce(() =>
-            HttpResponse.json({
-              action: 'continue',
-              activities: [{ conversation: { id: 'c-00001' }, text: 'Hello, World!', type: 'message' }],
-              conversationId: 'c-00001'
-            } as BotResponse)
-          );
-        } else {
-          httpPostConversation.mockImplementationOnce(
-            () =>
-              new HttpResponse(
-                Buffer.from(`event: activity
-data: { "conversation": { "id": "c-00001" }, "text": "Hello, World!", "type": "message" }
-
-event: activity
-data: { "conversation": { "id": "c-00001" }, "text": "Aloha!", "type": "message" }
-
-event: end
-data: end
-
-`),
-                { headers: { 'content-type': 'text/event-stream' } }
-              )
-          );
-        }
-
         startNewConversationResult = adapter.startNewConversation(emitStartConversationEvent);
       });
 
@@ -101,6 +74,33 @@ data: end
         let iteratorResult: IteratorResult<Activity>;
 
         beforeEach(async () => {
+          if (transport === 'rest') {
+            httpPostConversation.mockImplementationOnce(() =>
+              HttpResponse.json({
+                action: 'continue',
+                activities: [{ conversation: { id: 'c-00001' }, text: 'Hello, World!', type: 'message' }],
+                conversationId: 'c-00001'
+              } as BotResponse)
+            );
+          } else {
+            httpPostConversation.mockImplementationOnce(
+              () =>
+                new HttpResponse(
+                  Buffer.from(`event: activity
+data: { "conversation": { "id": "c-00001" }, "text": "Hello, World!", "type": "message" }
+
+event: activity
+data: { "conversation": { "id": "c-00001" }, "text": "Aloha!", "type": "message" }
+
+event: end
+data: end
+
+`),
+                  { headers: { 'content-type': 'text/event-stream' } }
+                )
+            );
+          }
+
           iteratorResult = await startNewConversationResult.next();
         });
 
@@ -203,18 +203,27 @@ data: end
               let executeTurnResult: ReturnType<DirectToEngineServerSentEventsChatAdapterAPI['executeTurn']>;
 
               beforeEach(() => {
-                if (transport === 'rest') {
-                  httpPostExecute.mockImplementationOnce(() =>
-                    HttpResponse.json({
-                      action: 'continue',
-                      activities: [{ conversation: { id: 'c-00001' }, text: 'Good morning!', type: 'message' }]
-                    } as BotResponse)
-                  );
-                } else if (transport === 'server sent events') {
-                  httpPostExecute.mockImplementationOnce(
-                    () =>
-                      new HttpResponse(
-                        Buffer.from(`event: activity
+                executeTurnResult = adapter.executeTurn({ from: { id: 'u-00001' }, text: 'Morning.', type: 'message' });
+              });
+
+              test('should not POST to /conversations/c-00001', () => expect(httpPostExecute).toHaveBeenCalledTimes(0));
+
+              describe('after iterate once', () => {
+                let iteratorResult: IteratorResult<Activity>;
+
+                beforeEach(async () => {
+                  if (transport === 'rest') {
+                    httpPostExecute.mockImplementationOnce(() =>
+                      HttpResponse.json({
+                        action: 'continue',
+                        activities: [{ conversation: { id: 'c-00001' }, text: 'Good morning!', type: 'message' }]
+                      } as BotResponse)
+                    );
+                  } else if (transport === 'server sent events') {
+                    httpPostExecute.mockImplementationOnce(
+                      () =>
+                        new HttpResponse(
+                          Buffer.from(`event: activity
 data: { "conversation": { "id": "c-00001" }, "text": "Good morning!", "type": "message" }
 
 event: activity
@@ -224,24 +233,11 @@ event: end
 data: end
 
 `),
-                        { headers: { 'content-type': 'text/event-stream' } }
-                      )
-                  );
-                }
+                          { headers: { 'content-type': 'text/event-stream' } }
+                        )
+                    );
+                  }
 
-                executeTurnResult = adapter.executeTurn({
-                  from: { id: 'u-00001', role: 'user' },
-                  text: 'Morning.',
-                  type: 'message'
-                });
-              });
-
-              test('should not POST to /conversations/c-00001', () => expect(httpPostExecute).toHaveBeenCalledTimes(0));
-
-              describe('after iterate once', () => {
-                let iteratorResult: IteratorResult<Activity>;
-
-                beforeEach(async () => {
                   iteratorResult = await executeTurnResult.next();
                 });
 
@@ -277,11 +273,7 @@ data: end
 
                   test('with JSON body of activity and { dummy: "dummy" }', () =>
                     expect(httpPostExecute.mock.calls[0][0].request.json()).resolves.toEqual({
-                      activity: {
-                        from: { id: 'u-00001', role: 'user' },
-                        text: 'Morning.',
-                        type: 'message'
-                      },
+                      activity: { from: { id: 'u-00001' }, text: 'Morning.', type: 'message' },
                       dummy: 'dummy'
                     }));
                 });
