@@ -4,9 +4,10 @@ import { setupServer } from 'msw/node';
 import DirectToEngineServerSentEventsChatAdapterAPI from '../../DirectToEngineServerSentEventsChatAdapterAPI';
 import asyncIterableToArray from '../../asyncIterableToArray';
 import type { BotResponse } from '../../types/BotResponse';
+import { parseConversationId } from '../../types/ConversationId';
+import type { DefaultHttpResponseResolver } from '../../types/DefaultHttpResponseResolver';
 import type { HalfDuplexChatAdapterAPIStrategy } from '../../types/HalfDuplexChatAdapterAPIStrategy';
-import type { DefaultHttpResponseResolver } from '../types/DefaultHttpResponseResolver';
-import type { JestMockOf } from '../types/JestMockOf';
+import type { JestMockOf } from '../../types/JestMockOf';
 
 const server = setupServer();
 
@@ -65,16 +66,16 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
           httpPostConversation.mockImplementationOnce(() =>
             HttpResponse.json({
               action: 'waiting',
-              activities: [{ text: 'Hello, World!', type: 'message' }],
-              conversationId: 'c-00001'
-            } as BotResponse)
+              activities: [{ from: { id: 'bot' }, text: 'Hello, World!', type: 'message' }],
+              conversationId: parseConversationId('c-00001')
+            } satisfies BotResponse)
           );
         } else {
           httpPostConversation.mockImplementationOnce(
             () =>
               new HttpResponse(
                 Buffer.from(`event: activity
-data: { "text": "Hello, World!", "type": "message" }
+data: { "from": { "id": "bot" }, "text": "Hello, World!", "type": "message" }
 
 event: end
 data: end
@@ -91,7 +92,7 @@ data: end
       });
 
       test('should receive greeting activities', () =>
-        expect(activities).toEqual([{ text: 'Hello, World!', type: 'message' }]));
+        expect(activities).toEqual([{ from: { id: 'bot' }, text: 'Hello, World!', type: 'message' }]));
 
       describe('when call startNewConversation again', () => {
         let startNewConversationResult: ReturnType<
@@ -103,16 +104,16 @@ data: end
             httpPostConversation.mockImplementationOnce(() =>
               HttpResponse.json({
                 action: 'waiting',
-                activities: [{ text: 'Aloha!', type: 'message' }],
-                conversationId: 'c-00001'
-              } as BotResponse)
+                activities: [{ from: { id: 'bot' }, text: 'Aloha!', type: 'message' }],
+                conversationId: parseConversationId('c-00001')
+              } satisfies BotResponse)
             );
           } else if (transport === 'server sent events') {
             httpPostConversation.mockImplementationOnce(
               () =>
                 new HttpResponse(
                   Buffer.from(`event: activity
-data: { "text": "Aloha!", "type": "message" }
+data: { "from": { "id": "bot" }, "text": "Aloha!", "type": "message" }
 
 event: end
 data: end

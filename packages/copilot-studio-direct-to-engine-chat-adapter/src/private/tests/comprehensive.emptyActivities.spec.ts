@@ -4,9 +4,9 @@ import { setupServer } from 'msw/node';
 import DirectToEngineServerSentEventsChatAdapterAPI from '../DirectToEngineServerSentEventsChatAdapterAPI';
 import type { BotResponse } from '../types/BotResponse';
 import { parseConversationId } from '../types/ConversationId';
+import type { DefaultHttpResponseResolver } from '../types/DefaultHttpResponseResolver';
 import type { HalfDuplexChatAdapterAPIStrategy } from '../types/HalfDuplexChatAdapterAPIStrategy';
-import type { DefaultHttpResponseResolver } from './types/DefaultHttpResponseResolver';
-import type { JestMockOf } from './types/JestMockOf';
+import type { JestMockOf } from '../types/JestMockOf';
 
 const server = setupServer();
 
@@ -77,7 +77,7 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
                 action: 'waiting',
                 activities: [],
                 conversationId: parseConversationId('c-00001')
-              } as BotResponse)
+              } satisfies BotResponse)
             );
           } else if (transport === 'server sent events') {
             httpPostConversation.mockImplementationOnce(
@@ -113,7 +113,7 @@ data: end
             beforeEach(async () => {
               if (transport === 'rest') {
                 httpPostExecute.mockImplementationOnce(() =>
-                  HttpResponse.json({ action: 'waiting', activities: [] } as BotResponse)
+                  HttpResponse.json({ action: 'waiting', activities: [] } satisfies BotResponse)
                 );
               } else if (transport === 'server sent events') {
                 httpPostExecute.mockImplementationOnce(

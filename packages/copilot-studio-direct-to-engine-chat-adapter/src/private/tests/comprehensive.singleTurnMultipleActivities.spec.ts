@@ -3,9 +3,10 @@ import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 import DirectToEngineServerSentEventsChatAdapterAPI from '../DirectToEngineServerSentEventsChatAdapterAPI';
 import type { BotResponse } from '../types/BotResponse';
+import { parseConversationId } from '../types/ConversationId';
+import type { DefaultHttpResponseResolver } from '../types/DefaultHttpResponseResolver';
 import type { HalfDuplexChatAdapterAPIStrategy } from '../types/HalfDuplexChatAdapterAPIStrategy';
-import type { DefaultHttpResponseResolver } from './types/DefaultHttpResponseResolver';
-import type { JestMockOf } from './types/JestMockOf';
+import type { JestMockOf } from '../types/JestMockOf';
 
 const server = setupServer();
 
@@ -75,21 +76,21 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
               HttpResponse.json({
                 action: 'waiting',
                 activities: [
-                  { text: 'Hello, World!', type: 'message' },
-                  { text: 'Aloha!', type: 'message' }
+                  { from: { id: 'bot' }, text: 'Hello, World!', type: 'message' },
+                  { from: { id: 'bot' }, text: 'Aloha!', type: 'message' }
                 ],
-                conversationId: 'c-00001'
-              } as BotResponse)
+                conversationId: parseConversationId('c-00001')
+              } satisfies BotResponse)
             );
           } else if (transport === 'server sent events') {
             httpPostConversation.mockImplementationOnce(
               () =>
                 new HttpResponse(
                   Buffer.from(`event: activity
-data: { "text": "Hello, World!", "type": "message" }
+data: { "from": { "id": "bot" }, "text": "Hello, World!", "type": "message" }
 
 event: activity
-data: { "text": "Aloha!", "type": "message" }
+data: { "from": { "id": "bot" }, "text": "Aloha!", "type": "message" }
 
 event: end
 data: end
@@ -108,7 +109,7 @@ data: end
         test('should return the first activity', () =>
           expect(iteratorResult).toEqual({
             done: false,
-            value: { text: 'Hello, World!', type: 'message' }
+            value: { from: { id: 'bot' }, text: 'Hello, World!', type: 'message' }
           }));
 
         describe('after iterate twice', () => {
@@ -121,7 +122,7 @@ data: end
           test('should return the first activity', () =>
             expect(iteratorResult).toEqual({
               done: false,
-              value: { text: 'Aloha!', type: 'message' }
+              value: { from: { id: 'bot' }, text: 'Aloha!', type: 'message' }
             }));
 
           describe('after iterate the third time', () => {
@@ -149,20 +150,20 @@ data: end
                       HttpResponse.json({
                         action: 'waiting',
                         activities: [
-                          { text: 'Good morning!', type: 'message' },
-                          { text: 'Goodbye!', type: 'message' }
+                          { from: { id: 'bot' }, text: 'Good morning!', type: 'message' },
+                          { from: { id: 'bot' }, text: 'Goodbye!', type: 'message' }
                         ]
-                      } as BotResponse)
+                      } satisfies BotResponse)
                     );
                   } else if (transport === 'server sent events') {
                     httpPostExecute.mockImplementationOnce(
                       () =>
                         new HttpResponse(
                           Buffer.from(`event: activity
-data: { "text": "Good morning!", "type": "message" }
+data: { "from": { "id": "bot" }, "text": "Good morning!", "type": "message" }
 
 event: activity
-data: { "text": "Goodbye!", "type": "message" }
+data: { "from": { "id": "bot" }, "text": "Goodbye!", "type": "message" }
 
 event: end
 data: end
@@ -179,7 +180,7 @@ data: end
                 test('should return the third activity', () =>
                   expect(iteratorResult).toEqual({
                     done: false,
-                    value: { text: 'Good morning!', type: 'message' }
+                    value: { from: { id: 'bot' }, text: 'Good morning!', type: 'message' }
                   }));
 
                 describe('after iterate twice', () => {
@@ -192,7 +193,7 @@ data: end
                   test('should return the fourth activity', () =>
                     expect(iteratorResult).toEqual({
                       done: false,
-                      value: { text: 'Goodbye!', type: 'message' }
+                      value: { from: { id: 'bot' }, text: 'Goodbye!', type: 'message' }
                     }));
 
                   describe('after iterate the third time', () => {

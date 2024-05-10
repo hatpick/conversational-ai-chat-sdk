@@ -2,8 +2,8 @@ import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 import DirectToEngineServerSentEventsChatAdapterAPI from '../../DirectToEngineServerSentEventsChatAdapterAPI';
 import type { HalfDuplexChatAdapterAPIStrategy } from '../../types/HalfDuplexChatAdapterAPIStrategy';
-import type { DefaultHttpResponseResolver } from '../types/DefaultHttpResponseResolver';
-import type { JestMockOf } from '../types/JestMockOf';
+import type { DefaultHttpResponseResolver } from '../../types/DefaultHttpResponseResolver';
+import type { JestMockOf } from '../../types/JestMockOf';
 
 const server = setupServer();
 

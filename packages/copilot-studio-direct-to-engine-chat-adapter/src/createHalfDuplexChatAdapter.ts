@@ -4,13 +4,15 @@
 
 import { type Activity } from 'botframework-directlinejs';
 
-import DirectToEngineServerSentEventsChatAdapterAPI from './private/DirectToEngineServerSentEventsChatAdapterAPI';
+import DirectToEngineServerSentEventsChatAdapterAPI, {
+  type DirectToEngineServerSentEventsChatAdapterAPIInit
+} from './private/DirectToEngineServerSentEventsChatAdapterAPI';
 import { type HalfDuplexChatAdapterAPI } from './private/types/HalfDuplexChatAdapterAPI';
 import { type HalfDuplexChatAdapterAPIStrategy } from './private/types/HalfDuplexChatAdapterAPIStrategy';
 
 export type ExecuteTurnFunction = (activity: Activity) => Promise<TurnGenerator>;
 
-type Init = ConstructorParameters<typeof DirectToEngineServerSentEventsChatAdapterAPI>[1] & {
+type Init = DirectToEngineServerSentEventsChatAdapterAPIInit & {
   emitStartConversationEvent?: boolean;
 };
 

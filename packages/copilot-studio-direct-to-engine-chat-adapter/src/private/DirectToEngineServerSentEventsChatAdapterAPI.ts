@@ -5,7 +5,6 @@
 import { type Activity } from 'botframework-directlinejs';
 import { EventSourceParserStream, type ParsedEvent } from 'eventsource-parser/stream';
 import pRetry from 'p-retry';
-import { type TelemetryClient } from 'powerva-turn-based-chat-adapter-framework';
 
 import { type Transport } from '../types/Transport';
 import iterateReadableStream from './iterateReadableStream';
@@ -15,20 +14,18 @@ import { parseConversationId, type ConversationId } from './types/ConversationId
 import { type HalfDuplexChatAdapterAPI } from './types/HalfDuplexChatAdapterAPI';
 import { type HalfDuplexChatAdapterAPIStrategy } from './types/HalfDuplexChatAdapterAPIStrategy';
 
-type RetryInit = Readonly<{
-  factor?: number | undefined;
-  minTimeout?: number | undefined;
-  maxTimeout?: number | undefined;
-  randomize?: boolean | undefined;
-  retries?: number | undefined;
-}>;
-
-type Init = {
-  retry?: RetryInit | undefined;
-  telemetry?: MinimalTelemetryClient;
+export type DirectToEngineServerSentEventsChatAdapterAPIInit = {
+  retry?:
+    | Readonly<{
+        factor?: number | undefined;
+        minTimeout?: number | undefined;
+        maxTimeout?: number | undefined;
+        randomize?: boolean | undefined;
+        retries?: number | undefined;
+      }>
+    | undefined;
+  telemetry?: { trackException(exception: unknown, customProperties?: Record<string, unknown>): void };
 };
-
-type MinimalTelemetryClient = Pick<TelemetryClient, 'trackException'>;
 
 const DEFAULT_RETRY_COUNT = 4; // Will call 5 times.
 const MAX_CONTINUE_TURN = 999;
@@ -39,7 +36,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
   //        - Do not add any non-async methods or properties
   //        - Do not pass any arguments that is not able to be cloned by the Structured Clone Algorithm
   //        - After modifying this class, always test with a C1-hosted PVA Anywhere Bot
-  constructor(strategy: HalfDuplexChatAdapterAPIStrategy, init?: Init) {
+  constructor(strategy: HalfDuplexChatAdapterAPIStrategy, init?: DirectToEngineServerSentEventsChatAdapterAPIInit) {
     this.#retry = {
       factor: init?.retry?.factor,
       maxTimeout: init?.retry?.maxTimeout,
@@ -54,9 +51,9 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
 
   #busy: boolean = false;
   #conversationId: ConversationId | undefined = undefined;
-  #retry: RetryInit & { retries: number };
+  #retry: DirectToEngineServerSentEventsChatAdapterAPIInit['retry'] & { retries: number };
   #strategy: HalfDuplexChatAdapterAPIStrategy;
-  #telemetry: MinimalTelemetryClient | undefined;
+  #telemetry: DirectToEngineServerSentEventsChatAdapterAPIInit['telemetry'];
 
   get conversationId(): ConversationId | undefined {
     return this.#conversationId;
