@@ -10,10 +10,8 @@ export default class DeferredQueue<T> {
   #queue: T[] = [];
 
   public get promise(): Promise<T> {
-    const value = this.#queue.shift();
-
-    return value
-      ? Promise.resolve(value)
+    return this.#queue.length
+      ? Promise.resolve(this.#queue.shift() as T)
       : this.#deferred.promise.then(value => {
           this.#queue.shift();
 
