@@ -5,7 +5,6 @@ import createHalfDuplexChatAdapter, {
   type ExecuteTurnFunction,
   type TurnGenerator
 } from '../createHalfDuplexChatAdapter';
-// TODO: Fix the import location.
 import type { BotResponse } from '../private/types/BotResponse';
 import { parseConversationId } from '../private/types/ConversationId';
 import type { DefaultHttpResponseResolver } from '../private/types/DefaultHttpResponseResolver';
@@ -140,7 +139,7 @@ data: end
         test('should return the first activity', () =>
           expect(iteratorResult).toEqual({
             done: false,
-            value: { "from": { "id": "bot" }, text: 'Hello, World!', type: 'message' }
+            value: { from: { id: 'bot' }, text: 'Hello, World!', type: 'message' }
           }));
 
         describe('after iterate twice', () => {
