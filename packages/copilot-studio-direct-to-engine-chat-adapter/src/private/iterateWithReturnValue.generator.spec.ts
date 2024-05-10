@@ -1,4 +1,4 @@
-import iterateWithReturnValue from './iterateWithReturnValueAsync';
+import iterateWithReturnValue from './iterateWithReturnValue';
 
 function sleep(durationInMS = 0): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, durationInMS));
