@@ -52,7 +52,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
     this.#telemetry = init?.telemetry;
   }
 
-  // TODO: Add a busy flag, throw when calling executeTurn() while another iteration is ongoing.
+  #busy: boolean = false;
   #conversationId: ConversationId | undefined = undefined;
   #retry: RetryInit & { retries: number };
   #strategy: HalfDuplexChatAdapterAPIStrategy;
@@ -63,26 +63,46 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
   }
 
   public startNewConversation(emitStartConversationEvent: boolean): AsyncIterableIterator<Activity> {
+    if (this.#busy) {
+      throw new Error('Another operation is in progress.');
+    }
+
+    this.#busy = true;
+
     return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
-      if (this.#conversationId) {
-        throw new Error('startNewConversation() cannot be called more than once.');
+      try {
+        if (this.#conversationId) {
+          throw new Error('startNewConversation() cannot be called more than once.');
+        }
+
+        const { baseURL, body, headers, transport } = await this.#strategy.prepareStartNewConversation();
+
+        yield* this.#post(baseURL, { body, headers, initialBody: { emitStartConversationEvent }, transport });
+      } finally {
+        this.#busy = false;
       }
-
-      const { baseURL, body, headers, transport } = await this.#strategy.prepareStartNewConversation();
-
-      yield* this.#post(baseURL, { body, headers, initialBody: { emitStartConversationEvent }, transport });
     }.call(this);
   }
 
   public executeTurn(activity: Activity): AsyncIterableIterator<Activity> {
+    if (this.#busy) {
+      throw new Error('Another operation is in progress.');
+    }
+
+    this.#busy = true;
+
     return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
-      if (!this.#conversationId) {
-        throw new Error(`startNewConversation() must be called before executeTurn().`);
+      try {
+        if (!this.#conversationId) {
+          throw new Error(`startNewConversation() must be called before executeTurn().`);
+        }
+
+        const { baseURL, body, headers, transport } = await this.#strategy.prepareExecuteTurn();
+
+        yield* this.#post(baseURL, { body, headers, initialBody: { activity }, transport });
+      } finally {
+        this.#busy = false;
       }
-
-      const { baseURL, body, headers, transport } = await this.#strategy.prepareExecuteTurn();
-
-      yield* this.#post(baseURL, { body, headers, initialBody: { activity }, transport });
     }.call(this);
   }
 
