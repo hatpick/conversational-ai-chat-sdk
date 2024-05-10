@@ -43,7 +43,7 @@ export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): Di
         const [activity, callback] = await postActivityDeferred.promise;
 
         const activityId = v4() as ActivityId;
-        const executeTurnActivities = await executeTurn(activity);
+        const executeTurnActivities = executeTurn(activity);
 
         observer.next(patchActivity({ ...activity, id: activityId }));
         callback(activityId);
