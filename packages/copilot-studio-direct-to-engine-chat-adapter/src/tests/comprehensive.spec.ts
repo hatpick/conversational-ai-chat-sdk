@@ -65,7 +65,7 @@ describe.each(['rest' as const, 'server sent events' as const])('Using "%s" tran
         emitStartConversationEvent,
         locale: 'ja-JP',
         retry: { factor: 1, minTimeout: 0 }
-      })();
+      });
     });
 
     describe('When conversation started and bot returned with 3 activities in 3 turns', () => {

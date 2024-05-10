@@ -4,9 +4,9 @@ import DirectToEngineServerSentEventsChatAdapterAPI from './private/DirectToEngi
 import { type HalfDuplexChatAdapterAPI } from './private/types/HalfDuplexChatAdapterAPI';
 import { type Strategy } from './types/Strategy';
 
-export type ExecuteTurnFunction = (activity: Activity) => TurnGenerator;
+type ExecuteTurnFunction = (activity: Activity) => TurnGenerator;
 
-export type CreateHalfDuplexChatAdapterInit = {
+type CreateHalfDuplexChatAdapterInit = {
   emitStartConversationEvent?: boolean;
   locale?: string;
   retry?:
@@ -21,7 +21,7 @@ export type CreateHalfDuplexChatAdapterInit = {
   telemetry?: { trackException(exception: unknown, customProperties?: Record<string, unknown>): void };
 };
 
-export type TurnGenerator = AsyncGenerator<Activity, ExecuteTurnFunction, undefined>;
+type TurnGenerator = AsyncGenerator<Activity, ExecuteTurnFunction, undefined>;
 
 const createExecuteTurn = (api: HalfDuplexChatAdapterAPI): ExecuteTurnFunction => {
   let obsoleted = false;
@@ -43,8 +43,11 @@ const createExecuteTurn = (api: HalfDuplexChatAdapterAPI): ExecuteTurnFunction =
   };
 };
 
-export default function createHalfDuplexChatAdapter(strategy: Strategy, init: CreateHalfDuplexChatAdapterInit = {}) {
-  return (): TurnGenerator => {
+export default function createHalfDuplexChatAdapter(
+  strategy: Strategy,
+  init: CreateHalfDuplexChatAdapterInit = {}
+): TurnGenerator {
+  return (async function* (): TurnGenerator {
     const api = new DirectToEngineServerSentEventsChatAdapterAPI(strategy, {
       retry: init.retry,
       telemetry: init.telemetry
@@ -55,10 +58,10 @@ export default function createHalfDuplexChatAdapter(strategy: Strategy, init: Cr
       locale: init.locale
     });
 
-    return (async function* (): TurnGenerator {
-      yield* activities;
+    yield* activities;
 
-      return createExecuteTurn(api);
-    })();
-  };
+    return createExecuteTurn(api);
+  })();
 }
+
+export type { CreateHalfDuplexChatAdapterInit, ExecuteTurnFunction, TurnGenerator };

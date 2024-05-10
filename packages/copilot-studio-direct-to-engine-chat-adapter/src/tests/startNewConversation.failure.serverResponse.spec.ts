@@ -57,7 +57,7 @@ describe.each([['rest' as const], ['server sent events' as const]])('Using "%s" 
         generator = createHalfDuplexChatAdapter(strategy, {
           emitStartConversationEvent,
           retry: { factor: 1, minTimeout: 0 }
-        })();
+        });
       });
 
       describe('when iterate', () => {

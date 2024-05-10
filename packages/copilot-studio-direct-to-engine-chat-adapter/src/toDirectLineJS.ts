@@ -7,13 +7,11 @@ import {
 } from 'powerva-turn-based-chat-adapter-framework';
 import { v4 } from 'uuid';
 
-import type createHalfDuplexChatAdapter from './createHalfDuplexChatAdapter';
+import type { TurnGenerator } from './createHalfDuplexChatAdapter';
 import iterateWithReturnValue from './private/iterateWithReturnValueAsync';
 import { type ActivityId, type DirectLineJSBotConnection } from './types/DirectLineJSBotConnection';
 
-export default function toDirectLineJS(
-  startConversation: ReturnType<typeof createHalfDuplexChatAdapter>
-): DirectLineJSBotConnection {
+export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): DirectLineJSBotConnection {
   let nextSequenceId = 0;
   let postActivityDeferred = new DeferredPromise<readonly [Activity, (id: ActivityId) => void]>();
 
@@ -32,11 +30,9 @@ export default function toDirectLineJS(
     connectionStatusDeferredObservable.next(1);
 
     (async function () {
-      const startConversationPromise = await startConversation();
-
       connectionStatusDeferredObservable.next(2);
 
-      let [activities, getExecuteTurn] = iterateWithReturnValue(startConversationPromise);
+      let [activities, getExecuteTurn] = iterateWithReturnValue(halfDuplexChatAdapter);
 
       for (;;) {
         for await (const activity of activities) {
