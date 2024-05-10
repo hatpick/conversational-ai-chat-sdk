@@ -34,7 +34,7 @@ const createExecuteTurn = (api: HalfDuplexChatAdapterAPI): ExecuteTurnFunction =
   };
 };
 
-export default function (strategy: HalfDuplexChatAdapterAPIStrategy, init: Init = {}) {
+export default function createHalfDuplexChatAdapter(strategy: HalfDuplexChatAdapterAPIStrategy, init: Init = {}) {
   return async (): Promise<TurnGenerator> => {
     const api = new DirectToEngineServerSentEventsChatAdapterAPI(strategy, init);
 
