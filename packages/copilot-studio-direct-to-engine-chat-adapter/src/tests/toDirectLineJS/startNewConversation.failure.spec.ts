@@ -8,6 +8,11 @@ import type { DirectLineJSBotConnection } from '../../types/DirectLineJSBotConne
 
 const END_TURN = Symbol('END_TURN');
 
+beforeAll(() => {
+  jest.spyOn(console, 'error').mockImplementation(jest.fn());
+  jest.spyOn(console, 'warn').mockImplementation(jest.fn());
+});
+
 describe('with a TurnGenerator', () => {
   let activityObserver: JestMockOf<(activity: Activity) => void>;
   let connectionStatusObserver: JestMockOf<(connectionStatus: ConnectionStatus) => void>;

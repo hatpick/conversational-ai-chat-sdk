@@ -63,7 +63,9 @@ export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): Di
             callback(activityId);
           };
         }
-      } catch {
+      } catch (error) {
+        console.error('Failed to communicate with the chat adapter.', error);
+
         connectionStatusDeferredObservable.next(4);
       }
     })();
