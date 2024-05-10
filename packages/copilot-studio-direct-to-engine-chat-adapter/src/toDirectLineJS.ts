@@ -34,33 +34,37 @@ export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): Di
       let turnGenerator: TurnGenerator = halfDuplexChatAdapter;
       let handleIncomingActivityOnce: (() => void) | undefined = () => connectionStatusDeferredObservable.next(2);
 
-      for (;;) {
-        let getExecuteTurn: () => ExecuteTurnFunction;
+      try {
+        for (;;) {
+          let getExecuteTurn: () => ExecuteTurnFunction;
 
-        [activities, getExecuteTurn] = iterateWithReturnValue(turnGenerator);
+          [activities, getExecuteTurn] = iterateWithReturnValue(turnGenerator);
 
-        for await (const activity of activities) {
-          handleIncomingActivityOnce?.();
-          handleIncomingActivityOnce = undefined;
+          for await (const activity of activities) {
+            handleIncomingActivityOnce?.();
+            handleIncomingActivityOnce = undefined;
 
-          observer.next(patchActivity(activity));
+            observer.next(patchActivity(activity));
+          }
+
+          const executeTurn = getExecuteTurn();
+          const [activity, callback] = await postActivityDeferred.promise;
+
+          postActivityDeferred = new DeferredPromise();
+
+          turnGenerator = executeTurn(activity);
+
+          // We will generate the activity ID and echoback the activity only when the first incoming activity arrived.
+          // This make sure the bot acknowledged the outgoing activity before we echoback the activity.
+          handleIncomingActivityOnce = () => {
+            const activityId = v4() as ActivityId;
+
+            observer.next(patchActivity({ ...activity, id: activityId }));
+            callback(activityId);
+          };
         }
-
-        const executeTurn = getExecuteTurn();
-        const [activity, callback] = await postActivityDeferred.promise;
-
-        postActivityDeferred = new DeferredPromise();
-
-        turnGenerator = executeTurn(activity);
-
-        // We will generate the activity ID and echoback the activity only when the first incoming activity arrived.
-        // This make sure the bot acknowledged the outgoing activity before we echoback the activity.
-        handleIncomingActivityOnce = () => {
-          const activityId = v4() as ActivityId;
-
-          observer.next(patchActivity({ ...activity, id: activityId }));
-          callback(activityId);
-        };
+      } catch {
+        connectionStatusDeferredObservable.next(4);
       }
     })();
   });

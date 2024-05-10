@@ -1,7 +1,8 @@
 import type { Activity, ConnectionStatus } from 'botframework-directlinejs';
-import { DeferredPromise, type Observable } from 'powerva-turn-based-chat-adapter-framework';
+import { type Observable } from 'powerva-turn-based-chat-adapter-framework';
 
 import type { TurnGenerator } from '../../createHalfDuplexChatAdapter';
+import DeferredQueue from '../../private/DeferredQueue';
 import type { JestMockOf } from '../../private/types/JestMockOf';
 import toDirectLineJS from '../../toDirectLineJS';
 import type { DirectLineJSBotConnection } from '../../types/DirectLineJSBotConnection';
@@ -12,17 +13,17 @@ describe('with a TurnGenerator', () => {
   let activityObserver: JestMockOf<(activity: Activity) => void>;
   let connectionStatusObserver: JestMockOf<(connectionStatus: ConnectionStatus) => void>;
   let directLineJS: DirectLineJSBotConnection;
-  let incomingActivityDeferred: DeferredPromise<Activity | typeof END_TURN>;
+  let incomingActivityQueue: DeferredQueue<Activity | typeof END_TURN>;
   let turnGenerator: TurnGenerator;
   let nextTurn: JestMockOf<(activity?: Activity | undefined) => TurnGenerator>;
 
   beforeEach(() => {
+    incomingActivityQueue = new DeferredQueue();
+
     nextTurn = jest.fn<TurnGenerator, [Activity | undefined]>(() => {
       return (async function* () {
         for (;;) {
-          incomingActivityDeferred = new DeferredPromise();
-
-          const activity = await incomingActivityDeferred.promise;
+          const activity = await incomingActivityQueue.promise;
 
           if (activity === END_TURN) {
             break;
@@ -53,11 +54,11 @@ describe('with a TurnGenerator', () => {
   });
 
   describe('when an activity arrive', () => {
-    beforeEach(() => incomingActivityDeferred.resolve({ from: { id: 'bot' }, text: 'Hello, World!', type: 'message' }));
+    beforeEach(() => incomingActivityQueue.push({ from: { id: 'bot' }, text: 'Hello, World!', type: 'message' }));
 
     describe('should call the connnectionStatus observer', () => {
       test('once', () => expect(connectionStatusObserver).toHaveBeenCalledTimes(3));
-      test('with "Connected"', () => expect(connectionStatusObserver).toHaveBeenNthCalledWith(3, 2));
+      test('with "Online"', () => expect(connectionStatusObserver).toHaveBeenNthCalledWith(3, 2));
     });
 
     describe('should call the activity observer', () => {
@@ -73,7 +74,7 @@ describe('with a TurnGenerator', () => {
     });
 
     describe('when turn ended', () => {
-      beforeEach(() => incomingActivityDeferred.resolve(END_TURN));
+      beforeEach(() => incomingActivityQueue.push(END_TURN));
 
       test('should not call next turn', () => expect(nextTurn).toHaveBeenCalledTimes(1));
 
@@ -113,7 +114,7 @@ describe('with a TurnGenerator', () => {
 
           describe('when receive activity', () => {
             beforeEach(() =>
-              incomingActivityDeferred.resolve({ from: { id: 'bot' }, text: 'Good morning.', type: 'message' })
+              incomingActivityQueue.push({ from: { id: 'bot' }, text: 'Good morning.', type: 'message' })
             );
 
             test('should call the post activity observer', () => expect(postActivityObserver).toHaveBeenCalledTimes(1));
@@ -153,7 +154,7 @@ describe('with a TurnGenerator', () => {
               test('should not call the next turn', () => expect(nextTurn).toHaveBeenCalledTimes(2));
 
               describe('when turn ended', () => {
-                beforeEach(() => incomingActivityDeferred.resolve(END_TURN));
+                beforeEach(() => incomingActivityQueue.push(END_TURN));
 
                 describe('should call the next turn', () => {
                   test('once', () => expect(nextTurn).toHaveBeenCalledTimes(3));
@@ -169,9 +170,7 @@ describe('with a TurnGenerator', () => {
                   expect(postActivityObserver).toHaveBeenCalledTimes(0));
 
                 describe('when receive activity', () => {
-                  beforeEach(() =>
-                    incomingActivityDeferred.resolve({ from: { id: 'bot' }, text: 'Bye.', type: 'message' })
-                  );
+                  beforeEach(() => incomingActivityQueue.push({ from: { id: 'bot' }, text: 'Bye.', type: 'message' }));
 
                   test('should call the post activity observer', () =>
                     expect(postActivityObserver).toHaveBeenCalledTimes(1));

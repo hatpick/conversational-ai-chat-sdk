@@ -46,14 +46,12 @@ describe('with a TurnGenerator', () => {
     directLineJS.activity$.subscribe(activityObserver);
   });
 
-  describe('when an activity arrive ', () => {
+  describe('when an activity arrive', () => {
     beforeEach(() => {
       incomingActivityDeferred.resolve({ from: { id: 'bot' }, text: 'Hello, World!', type: 'message' });
     });
 
-    describe('should call the activity observer', () => {
-      test('once', () => expect(activityObserver).toHaveBeenCalledTimes(1));
-    });
+    test('should call the activity observer', () => expect(activityObserver).toHaveBeenCalledTimes(1));
 
     describe('when post activity', () => {
       let firstPostActivityObserver: JestMockOf<(id: string) => void>;
