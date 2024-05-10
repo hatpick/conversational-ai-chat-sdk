@@ -10,15 +10,19 @@ export default class DeferredQueue<T> {
   #queue: T[] = [];
 
   public get promise(): Promise<T> {
-    return this.#deferred.promise.then(() => {
-      const value = this.#queue.shift();
+    const value = this.#queue.shift();
 
-      if (!value) {
-        throw new Error('No item to dequeue.');
-      }
+    return value
+      ? Promise.resolve(value)
+      : this.#deferred.promise.then(() => {
+          const value = this.#queue.shift();
 
-      return value;
-    });
+          if (!value) {
+            throw new Error('No item to dequeue.');
+          }
+
+          return value;
+        });
   }
 
   public push(value: T) {
