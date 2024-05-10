@@ -5,12 +5,12 @@ import { setupServer } from 'msw/node';
 import createHalfDuplexChatAdapter, {
   type ExecuteTurnFunction,
   type TurnGenerator
-} from '../createHalfDuplexChatAdapter';
-import type { BotResponse } from '../private/types/BotResponse';
-import { parseConversationId } from '../private/types/ConversationId';
-import type { DefaultHttpResponseResolver } from '../private/types/DefaultHttpResponseResolver';
-import type { JestMockOf } from '../private/types/JestMockOf';
-import type { Strategy } from '../types/Strategy';
+} from '../../createHalfDuplexChatAdapter';
+import type { BotResponse } from '../../private/types/BotResponse';
+import { parseConversationId } from '../../private/types/ConversationId';
+import type { DefaultHttpResponseResolver } from '../../private/types/DefaultHttpResponseResolver';
+import type { JestMockOf } from '../../private/types/JestMockOf';
+import type { Strategy } from '../../types/Strategy';
 
 const server = setupServer();
 

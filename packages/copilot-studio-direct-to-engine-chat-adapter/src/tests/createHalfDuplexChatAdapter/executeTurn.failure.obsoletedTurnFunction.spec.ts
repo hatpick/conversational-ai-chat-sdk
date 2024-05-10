@@ -5,13 +5,13 @@ import { setupServer } from 'msw/node';
 import createHalfDuplexChatAdapter, {
   type ExecuteTurnFunction,
   type TurnGenerator
-} from '../createHalfDuplexChatAdapter';
-import asyncGeneratorToArray from '../private/asyncGeneratorToArray';
-import type { BotResponse } from '../private/types/BotResponse';
-import { parseConversationId } from '../private/types/ConversationId';
-import type { DefaultHttpResponseResolver } from '../private/types/DefaultHttpResponseResolver';
-import type { JestMockOf } from '../private/types/JestMockOf';
-import type { Strategy } from '../types/Strategy';
+} from '../../createHalfDuplexChatAdapter';
+import asyncGeneratorToArray from '../../private/asyncGeneratorToArray';
+import type { BotResponse } from '../../private/types/BotResponse';
+import { parseConversationId } from '../../private/types/ConversationId';
+import type { DefaultHttpResponseResolver } from '../../private/types/DefaultHttpResponseResolver';
+import type { JestMockOf } from '../../private/types/JestMockOf';
+import type { Strategy } from '../../types/Strategy';
 
 const server = setupServer();
 
@@ -100,11 +100,7 @@ data: end
       test('should receive greeting activities', () =>
         expect(activities).toEqual([{ from: { id: 'bot' }, text: 'Hello, World!', type: 'message' }]));
 
-      describe.each([
-        ['server closed connection', HttpResponse.error(), { expectedNumCalled: 5 }],
-        ['server returned 400', new HttpResponse(undefined, { status: 400 }), { expectedNumCalled: 1 }],
-        ['server returned 500', new HttpResponse(undefined, { status: 500 }), { expectedNumCalled: 5 }]
-      ])('when execute turn and %s', (_, response, { expectedNumCalled }) => {
+      describe('when execute turn', () => {
         let generator: TurnGenerator;
 
         beforeEach(() => {
@@ -116,21 +112,61 @@ data: end
         });
 
         describe('when iterate', () => {
-          let iteratePromise: Promise<unknown>;
+          let activities: Activity[];
 
           beforeEach(async () => {
-            httpPostExecute.mockImplementation(() => response);
+            if (transport === 'rest') {
+              httpPostExecute.mockImplementationOnce(() =>
+                HttpResponse.json({
+                  action: 'waiting',
+                  activities: [{ from: { id: 'bot' }, text: 'Aloha!', type: 'message' }],
+                  conversationId: parseConversationId('c-00001')
+                } satisfies BotResponse)
+              );
+            } else if (transport === 'server sent events') {
+              httpPostExecute.mockImplementationOnce(
+                () =>
+                  new HttpResponse(
+                    Buffer.from(`event: activity
+data: { "from": { "id": "bot" }, "text": "Aloha!", "type": "message" }
 
-            iteratePromise = generator.next();
+event: end
+data: end
 
-            await iteratePromise.catch(() => {});
+`),
+                    { headers: { 'content-type': 'text/event-stream' } }
+                  )
+              );
+            }
+
+            [activities] = await asyncGeneratorToArray(generator);
           });
 
-          test(`should have POST to /conversations ${
-            expectedNumCalled === 1 ? 'once' : `${expectedNumCalled} times`
-          }`, () => expect(httpPostExecute).toHaveBeenCalledTimes(expectedNumCalled));
+          test('should receive activities', () =>
+            expect(activities).toEqual([{ from: { id: 'bot' }, text: 'Aloha!', type: 'message' }]));
 
-          test('should reject', () => expect(iteratePromise).rejects.toThrow());
+          describe('when calling previous executeTurn function', () => {
+            let errorThrown: unknown;
+
+            beforeEach(async () => {
+              try {
+                executeTurn({
+                  from: { id: 'u-00001' },
+                  text: 'Morning.',
+                  type: 'message'
+                });
+              } catch (error) {
+                errorThrown = error;
+              }
+            });
+
+            test('should throw', () =>
+              expect(() => {
+                if (errorThrown) {
+                  throw errorThrown;
+                }
+              }).toThrow('This executeTurn() function is obsoleted. Please use a new one.'));
+          });
         });
       });
     });
