@@ -44,7 +44,7 @@ class AsyncIterableIteratorWithReturnValue<T, TReturn, TNext> implements AsyncIt
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function literateWithReturnValue<T, TReturn = any, TNext = unknown>(
+export default function iterateWithReturnValue<T, TReturn = any, TNext = unknown>(
   iterator: AsyncIterator<T, TReturn, TNext>
 ): readonly [AsyncIterableIterator<T>, () => TReturn] {
   const iterable = new AsyncIterableIteratorWithReturnValue(iterator);
