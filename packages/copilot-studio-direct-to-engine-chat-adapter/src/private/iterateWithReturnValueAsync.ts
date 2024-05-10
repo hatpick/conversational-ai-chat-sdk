@@ -17,6 +17,9 @@ class AsyncIterableIteratorWithReturnValue<T, TReturn, TNext> implements AsyncIt
 
   #returnValue: TReturn | typeof IterationNotCompleted = IterationNotCompleted;
 
+  #spy<TFn extends () => Promise<IteratorResult<T, TReturn>>>(fn: TFn): TFn;
+  #spy<TFn extends (...args: unknown[]) => Promise<IteratorResult<T, TReturn>>>(fn: TFn): TFn;
+
   #spy<TFn extends (...args: unknown[]) => Promise<IteratorResult<T, TReturn>>>(fn: TFn) {
     return async (...args: Parameters<TFn>): Promise<IteratorResult<T, TReturn>> => {
       const result = await fn(...args);
