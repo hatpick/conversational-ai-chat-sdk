@@ -76,7 +76,10 @@ describe('with a TurnGenerator', () => {
 
         describe('should call the connection status observer', () => {
           test('once', () => expect(connectionStatusObserver).toHaveBeenCalledTimes(4));
-          test('with "DISCONNECTED"', () => expect(connectionStatusObserver).toHaveBeenNthCalledWith(4, 4));
+          test('with "Uninitialized"', () => expect(connectionStatusObserver).toHaveBeenNthCalledWith(1, 0));
+          test('with "Connecting"', () => expect(connectionStatusObserver).toHaveBeenNthCalledWith(2, 1));
+          test('with "Online"', () => expect(connectionStatusObserver).toHaveBeenNthCalledWith(3, 2));
+          test('with "FailedToConnect"', () => expect(connectionStatusObserver).toHaveBeenNthCalledWith(4, 4));
         });
       });
     });
