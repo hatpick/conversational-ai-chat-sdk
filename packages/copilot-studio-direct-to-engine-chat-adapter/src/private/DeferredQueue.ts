@@ -6,7 +6,7 @@ export default class DeferredQueue<T> {
     this.#deferred.promise.catch(() => {});
   }
 
-  #deferred: DeferredPromise<void>;
+  #deferred: DeferredPromise<T>;
   #queue: T[] = [];
 
   public get promise(): Promise<T> {
@@ -14,12 +14,8 @@ export default class DeferredQueue<T> {
 
     return value
       ? Promise.resolve(value)
-      : this.#deferred.promise.then(() => {
-          const value = this.#queue.shift();
-
-          if (!value) {
-            throw new Error('No item to dequeue.');
-          }
+      : this.#deferred.promise.then(value => {
+          this.#queue.shift();
 
           return value;
         });
@@ -27,7 +23,7 @@ export default class DeferredQueue<T> {
 
   public push(value: T) {
     this.#queue.push(value);
-    this.#deferred.resolve();
+    this.#deferred.resolve(value);
     this.#deferred = new DeferredPromise();
     this.#deferred.promise.catch(() => {});
   }
