@@ -3,7 +3,6 @@ import { DeferredPromise } from 'powerva-turn-based-chat-adapter-framework';
 export default class DeferredQueue<T> {
   constructor() {
     this.#deferred = new DeferredPromise();
-    this.#deferred.promise.catch(() => {});
   }
 
   #deferred: DeferredPromise<T>;
@@ -23,10 +22,10 @@ export default class DeferredQueue<T> {
     this.#queue.push(value);
     this.#deferred.resolve(value);
     this.#deferred = new DeferredPromise();
-    this.#deferred.promise.catch(() => {});
   }
 
   public reject(error: unknown) {
+    this.#deferred.promise.catch(() => {});
     this.#deferred.reject(error);
   }
 }
