@@ -88,7 +88,7 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
       }
     } else if (action.type === 'SET_DELTA_TOKEN') {
       if (state.deltaToken !== action.payload) {
-        state = { ...state, deltaToken: action.payload };
+        state = { ...state, deltaToken: action.payload.replace(/^"|"$/gu, '') };
       }
     } else if (action.type === 'SET_ENVIRONMENT_ID') {
       if (state.environmentID !== action.payload) {
