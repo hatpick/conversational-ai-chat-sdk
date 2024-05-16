@@ -34,6 +34,8 @@ export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): Di
       let turnGenerator: TurnGenerator = halfDuplexChatAdapter;
       let handleIncomingActivityOnce: (() => void) | undefined = () => connectionStatusDeferredObservable.next(2);
 
+      // await new Promise(resolve => setTimeout(resolve, 1_000));
+
       try {
         for (;;) {
           let getExecuteTurn: () => ExecuteTurnFunction;
@@ -43,6 +45,8 @@ export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): Di
           for await (const activity of activities) {
             handleIncomingActivityOnce?.();
             handleIncomingActivityOnce = undefined;
+
+            await 0; // HACK: Web Chat need a spare cycle between connectionStatus$ change and activity$ subscription.
 
             observer.next(patchActivity(activity));
           }
