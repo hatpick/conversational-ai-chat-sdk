@@ -26,14 +26,6 @@
       }
     }
   },
-  "tsup": {
-    "noExternal": [
-      "eventsource-parser",
-      "p-retry",
-      "powerva-turn-based-chat-adapter-framework",
-      "uuid"
-    ]
-  },
   "scripts": {
     "build": "tsup ./src/index.ts --dts --format cjs,esm --sourcemap --target chrome110,ios16,node18",
     "bump": "npm run bump:prod && npm run bump:dev",

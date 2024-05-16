@@ -20,8 +20,10 @@ const TestCanvasBotStrategyInitSchema = () =>
   object(
     {
       botId: string([regex(UUID_REGEX)]),
-      deltaToken: optional(string()),
       environmentId: string([regex(UUID_REGEX)]),
+      getDeltaTokenCallback: optional(
+        special(input => typeof input === 'function') as SpecialSchema<() => string | undefined>
+      ),
       getTokenCallback: special(input => typeof input === 'function') as SpecialSchema<() => Promise<string>>,
       islandURI: special(input => input instanceof URL) as SpecialSchema<URL>,
       transport: union([
@@ -35,16 +37,23 @@ const TestCanvasBotStrategyInitSchema = () =>
 type TestCanvasBotStrategyInit = Output<ReturnType<typeof TestCanvasBotStrategyInitSchema>>;
 
 export default class TestCanvasBotStrategy implements Strategy {
-  constructor({ botId, deltaToken, islandURI, environmentId, getTokenCallback, transport }: TestCanvasBotStrategyInit) {
+  constructor({
+    botId,
+    islandURI,
+    environmentId,
+    getDeltaTokenCallback,
+    getTokenCallback,
+    transport
+  }: TestCanvasBotStrategyInit) {
     this.#getTokenCallback = getTokenCallback;
 
     this.#baseURL = new URL(`/environments/${encodeURI(environmentId)}/bots/${encodeURI(botId)}/test/`, islandURI);
-    this.#deltaToken = deltaToken;
+    this.#getDeltaTokenCallback = getDeltaTokenCallback;
     this.#transport = transport;
   }
 
   #baseURL: URL;
-  #deltaToken: string | undefined;
+  #getDeltaTokenCallback: (() => string | undefined) | undefined;
   #getTokenCallback: () => Promise<string>;
   #transport: Transport;
 
@@ -55,7 +64,7 @@ export default class TestCanvasBotStrategy implements Strategy {
   public async prepareExecuteTurn(): ReturnType<Strategy['prepareExecuteTurn']> {
     return {
       baseURL: this.#baseURL,
-      body: { deltaToken: this.#deltaToken },
+      body: { deltaToken: this.#getDeltaTokenCallback?.() },
       headers: await this.#getHeaders(),
       transport: this.#transport
     };
@@ -64,7 +73,7 @@ export default class TestCanvasBotStrategy implements Strategy {
   public async prepareStartNewConversation(): ReturnType<Strategy['prepareStartNewConversation']> {
     return {
       baseURL: this.#baseURL,
-      body: { deltaToken: this.#deltaToken },
+      body: { deltaToken: this.#getDeltaTokenCallback?.() },
       headers: await this.#getHeaders(),
       transport: this.#transport
     };

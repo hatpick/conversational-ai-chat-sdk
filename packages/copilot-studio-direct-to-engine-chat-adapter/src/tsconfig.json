@@ -4,7 +4,8 @@
     "lib": ["DOM"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
-    "strict": true
+    "strict": true,
+    "target": "ESNext"
   },
   "extends": "../../../configs/typescript/tsconfig.declaration.json"
 }
