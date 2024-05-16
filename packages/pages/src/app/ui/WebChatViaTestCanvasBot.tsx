@@ -21,20 +21,20 @@ type Props = {
 export default memo(function WebChat({ botId, deltaToken, environmentId, islandURI, token, transport }: Props) {
   const deltaTokenRef = useRefFrom(deltaToken);
   const tokenRef = useRefFrom(token);
-  const getDeltaTokenCallback = useCallback<() => string | undefined>(() => deltaTokenRef.current, [deltaTokenRef]);
-  const getTokenCallback = useCallback<() => Promise<string>>(() => Promise.resolve(tokenRef.current), [tokenRef]);
+  const getDeltaToken = useCallback<() => string | undefined>(() => deltaTokenRef.current, [deltaTokenRef]);
+  const getToken = useCallback<() => Promise<string>>(() => Promise.resolve(tokenRef.current), [tokenRef]);
 
   const strategy = useMemo(
     () =>
       new TestCanvasBotStrategy({
         botId,
         environmentId,
-        getDeltaTokenCallback,
-        getTokenCallback,
+        getDeltaToken,
+        getToken,
         islandURI: new URL(islandURI),
         transport
       }),
-    [botId, environmentId, getDeltaTokenCallback, getTokenCallback, islandURI, transport]
+    [botId, environmentId, getDeltaToken, getToken, islandURI, transport]
   );
 
   const chatAdapter = useMemo(() => toDirectLineJS(createHalfDuplexChatAdapter(strategy)), [strategy]);
@@ -55,13 +55,13 @@ export default memo(function WebChat({ botId, deltaToken, environmentId, islandU
       <h2>Chat adapter strategy parameters</h2>
       <pre>
         new TestCanvasBotStrategy({'{'}
-        {'\n  '}botId: {`'${botId}',`}
-        {'\n  '}deltaToken: {`'${deltaToken}',`}
-        {'\n  '}environmentId: {`'${environmentId.toString()}',`}
-        {'\n  '}getTokenCallback: () =&gt; token,
-        {'\n  '}islandURI: {`new URL('${islandURI.toString()}'),`}
-        {'\n  '}transport: {`'${transport}'`}
-        {'\n}'})
+        {`\n  botId: '${botId}',`}
+        {`\n  getDeltaToken: () => '${deltaToken}',`}
+        {`\n  environmentId: '${environmentId.toString()}',`}
+        {`\n  getToken: () => token`}
+        {`\n  islandURI: new URL('${islandURI.toString()}'),`}
+        {`\n  transport: '${transport}'`}
+        {`\n}`})
       </pre>
       <div className="webchat">
         <ReactWebChatShim directLine={chatAdapter} />
