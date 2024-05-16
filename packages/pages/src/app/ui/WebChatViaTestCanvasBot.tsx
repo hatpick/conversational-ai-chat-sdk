@@ -1,9 +1,10 @@
 import {
-  TestCanvasBotAPIStrategy,
+  TestCanvasBotStrategy,
   createHalfDuplexChatAdapter,
   toDirectLineJS
 } from 'copilot-studio-direct-to-engine-chat-adapter';
 import { Fragment, memo, useCallback, useEffect, useMemo } from 'react';
+import { useRefFrom } from 'use-ref-from';
 
 import { type Transport } from '../types/Transport';
 import ReactWebChatShim from './ReactWebChatShim';
@@ -18,19 +19,22 @@ type Props = {
 };
 
 export default memo(function WebChat({ botId, deltaToken, environmentId, islandURI, token, transport }: Props) {
-  const getTokenCallback = useCallback<() => Promise<string>>(() => Promise.resolve(token), [token]);
+  const deltaTokenRef = useRefFrom(deltaToken);
+  const tokenRef = useRefFrom(token);
+  const getDeltaTokenCallback = useCallback<() => string | undefined>(() => deltaTokenRef.current, [deltaTokenRef]);
+  const getTokenCallback = useCallback<() => Promise<string>>(() => Promise.resolve(tokenRef.current), [tokenRef]);
 
   const strategy = useMemo(
     () =>
-      new TestCanvasBotAPIStrategy({
+      new TestCanvasBotStrategy({
         botId,
-        deltaToken,
         environmentId,
+        getDeltaTokenCallback,
         getTokenCallback,
         islandURI: new URL(islandURI),
         transport
       }),
-    [botId, deltaToken, environmentId, getTokenCallback, islandURI]
+    [botId, environmentId, getDeltaTokenCallback, getTokenCallback, islandURI, transport]
   );
 
   const chatAdapter = useMemo(() => toDirectLineJS(createHalfDuplexChatAdapter(strategy)), [strategy]);
@@ -50,7 +54,7 @@ export default memo(function WebChat({ botId, deltaToken, environmentId, islandU
     <Fragment>
       <h2>Chat adapter strategy parameters</h2>
       <pre>
-        new TestCanvasBotAPIStrategy({'{'}
+        new TestCanvasBotStrategy({'{'}
         {'\n  '}botId: {`'${botId}',`}
         {'\n  '}deltaToken: {`'${deltaToken}',`}
         {'\n  '}environmentId: {`'${environmentId.toString()}',`}

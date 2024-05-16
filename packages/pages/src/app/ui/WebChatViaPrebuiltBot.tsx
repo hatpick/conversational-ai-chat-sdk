@@ -1,5 +1,5 @@
 import {
-  PrebuiltBotAPIStrategy,
+  PrebuiltBotStrategy,
   createHalfDuplexChatAdapter,
   toDirectLineJS
 } from 'copilot-studio-direct-to-engine-chat-adapter';
@@ -34,7 +34,7 @@ export default memo(function WebChat({ botIdentifier, environmentID, hostnameSuf
   const environmentEndpointURL = new URL(`https://${hostnamePrefix}.environment.${hostnameSuffix}`);
 
   const strategy = useMemo(
-    () => new PrebuiltBotAPIStrategy({ botIdentifier, environmentEndpointURL, getTokenCallback, transport }),
+    () => new PrebuiltBotStrategy({ botIdentifier, environmentEndpointURL, getTokenCallback, transport }),
     [botIdentifier, environmentEndpointURL, getTokenCallback, transport]
   );
 
@@ -47,7 +47,7 @@ export default memo(function WebChat({ botIdentifier, environmentID, hostnameSuf
     <Fragment>
       <h2>Chat adapter strategy parameters</h2>
       <pre>
-        new PrebuiltBotAPIStrategy({'{'}
+        new PrebuiltBotStrategy({'{'}
         {'\n  '}botIdentifier: {`'${botIdentifier}',`}
         {'\n  '}environmentEndpointURL: {`'${environmentEndpointURL.toString()}',`}
         {'\n  '}getTokenCallback: () =&gt; token,
