@@ -11,7 +11,8 @@ async function loadWebChatJS(): Promise<void> {
     const scriptElement = document.createElement('script');
 
     scriptElement.setAttribute('async', 'async');
-    scriptElement.setAttribute('src', 'asset/js/webchat.js');
+    // scriptElement.setAttribute('src', 'asset/js/webchat.js');
+    scriptElement.setAttribute('src', 'https://unpkg.com/botframework-webchat@main/dist/webchat.js');
 
     scriptElement.addEventListener('load', () => resolve(), { once: true });
     scriptElement.addEventListener('error', reject, { once: true });
@@ -39,6 +40,12 @@ const ReactWebChatShim = (props: Props) => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any)['WebChat'].renderWebChat(props, ref.current);
+
+      // props.directLine.activity$.subscribe({
+      //   next(value) {
+      //     console.log(value);
+      //   }
+      // });
     })();
 
     return () => abortController.abort();
