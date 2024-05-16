@@ -26,6 +26,14 @@
       }
     }
   },
+  "tsup": {
+    "noExternal": [
+      "eventsource-parser",
+      "p-retry",
+      "powerva-turn-based-chat-adapter-framework",
+      "uuid"
+    ]
+  },
   "scripts": {
     "build": "tsup ./src/index.ts --dts --format cjs,esm --sourcemap --target chrome110,ios16,node18",
     "bump": "npm run bump:prod && npm run bump:dev",
@@ -38,14 +46,12 @@
     "test": "jest --config jest.config.cjs"
   },
   "devDependencies": {
-    "@babel/core": "^7.22.9",
-    "@babel/preset-env": "^7.22.9",
-    "@babel/preset-typescript": "^7.22.5",
     "@microsoft/applicationinsights-common": "^2.8.15",
     "@types/jest": "^29.5.3",
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^6.2.0",
     "@typescript-eslint/parser": "^6.2.0",
+    "botframework-directlinejs": "^0.15.5",
     "eslint": "^8.45.0",
     "eslint-plugin-prettier": "^5.0.0",
     "eslint-plugin-react": "^7.33.0",
@@ -58,8 +64,6 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "@babel/runtime-corejs3": "7.22.6",
-    "botframework-directlinejs": "^0.15.4",
     "eventsource-parser": "^1.1.1",
     "p-retry": "^6.2.0",
     "powerva-turn-based-chat-adapter-framework": "^0.0.1-0",
