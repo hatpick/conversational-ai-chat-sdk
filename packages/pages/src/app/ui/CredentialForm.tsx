@@ -12,6 +12,7 @@ type Props = {
   botIdentifier?: string;
   botSchema?: string;
   deltaToken?: string;
+  emitStartConversationEvent?: boolean;
   environmentID?: string;
   hostnameSuffix?: string;
   islandURI?: string;
@@ -19,6 +20,7 @@ type Props = {
     botIdentifier: string;
     botSchema: string;
     deltaToken: string;
+    emitStartConversationEvent: boolean;
     environmentID: string;
     hostnameSuffix: string;
     islandURI: string;
@@ -38,6 +40,7 @@ export default memo(function CredentialForm({
   botIdentifier,
   botSchema,
   deltaToken,
+  emitStartConversationEvent,
   environmentID,
   hostnameSuffix,
   islandURI,
@@ -51,6 +54,7 @@ export default memo(function CredentialForm({
   const botIdentifierRef = useRefFrom(botIdentifier);
   const botSchemaRef = useRefFrom(botSchema);
   const deltaTokenRef = useRefFrom(deltaToken);
+  const emitStartConversationEventRef = useRefFrom(emitStartConversationEvent);
   const environmentIDRef = useRefFrom(environmentID);
   const hostnameSuffixRef = useRefFrom(hostnameSuffix);
   const islandURIRef = useRefFrom(islandURI);
@@ -66,6 +70,7 @@ export default memo(function CredentialForm({
       botIdentifier?: string;
       botSchema?: string;
       deltaToken?: string;
+      emitStartConversationEvent?: boolean;
       environmentID?: string;
       hostnameSuffix?: string;
       islandURI?: string;
@@ -82,6 +87,7 @@ export default memo(function CredentialForm({
         botIdentifier: botIdentifierRef.current || '',
         botSchema: botSchemaRef.current || '',
         deltaToken: deltaTokenRef.current || '',
+        emitStartConversationEvent: emitStartConversationEventRef.current ?? true,
         environmentID: environmentIDRef.current || '',
         hostnameSuffix: hostnameSuffixRef.current || '',
         islandURI: islandURIRef.current || '',
@@ -106,6 +112,11 @@ export default memo(function CredentialForm({
 
   const handleDeltaTokenChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
     ({ currentTarget }) => dispatchChange({ deltaToken: currentTarget.value }),
+    [dispatchChange]
+  );
+
+  const handleEmitStartConversationEventChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
+    ({ currentTarget }) => dispatchChange({ emitStartConversationEvent: currentTarget.checked }),
     [dispatchChange]
   );
 
@@ -234,6 +245,18 @@ export default memo(function CredentialForm({
               value="server sent events"
             />
             Server Sent Events
+          </label>
+        </dd>
+        <dt>Emit start conversation event</dt>
+        <dd>
+          <label>
+            <input
+              checked={emitStartConversationEvent}
+              name="emitStartConversationEvent"
+              onChange={handleEmitStartConversationEventChange}
+              type="checkbox"
+            />
+            Emit start conversation event
           </label>
         </dd>
         {type === 'test canvas bot' ? (

@@ -8,6 +8,7 @@ type State = {
   botIdentifier: string;
   botSchema: string;
   deltaToken: string;
+  emitStartConversationEvent: boolean;
   environmentID: string;
   hostnameSuffix: string;
   islandURI?: string;
@@ -23,6 +24,7 @@ type SetBotIdentifierAction = { payload: string; type: 'SET_BOT_IDENTIFIER' };
 type SetBotSchemaAction = { payload: string; type: 'SET_BOT_SCHEMA' };
 type SetDeltaTokenAction = { payload: string; type: 'SET_DELTA_TOKEN' };
 type SetEnvironmentIDAction = { payload: string; type: 'SET_ENVIRONMENT_ID' };
+type SetEmitStartConversationEventAction = { payload: boolean; type: 'SET_EMIT_START_CONVERSATION_EVENT' };
 type SetHostnameSuffixAction = { payload: string; type: 'SET_HOSTNAME_SUFFIX' };
 type SetIslandURIAction = { payload: string; type: 'SET_ISLAND_URI' };
 type SetTokenAction = { payload: string; type: 'SET_TOKEN' };
@@ -35,6 +37,7 @@ type Action =
   | SetBotIdentifierAction
   | SetBotSchemaAction
   | SetDeltaTokenAction
+  | SetEmitStartConversationEventAction
   | SetEnvironmentIDAction
   | SetHostnameSuffixAction
   | SetIslandURIAction
@@ -48,6 +51,7 @@ type DispatchAction = {
   setBotIdentifier: (botIdentifier: string) => void;
   setBotSchema: (botSchema: string) => void;
   setDeltaToken: (deltaToken: string) => void;
+  setEmitStartConversationEvent: (emitStartConversationEvent: boolean) => void;
   setEnvironmentID: (environmentID: string) => void;
   setHostnameSuffix: (hostnameSuffix: string) => void;
   setIslandURI: (islandURI: string) => void;
@@ -60,6 +64,7 @@ const DEFAULT_STATE: State = {
   botIdentifier: '',
   botSchema: '',
   deltaToken: '',
+  emitStartConversationEvent: true,
   environmentID: '',
   hostnameSuffix: 'api.powerplatform.com',
   islandURI: 'https://pvaruntime.us-il102.gateway.prod.island.powerapps.com',
@@ -89,6 +94,10 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
     } else if (action.type === 'SET_DELTA_TOKEN') {
       if (state.deltaToken !== action.payload) {
         state = { ...state, deltaToken: action.payload.replace(/^"|"$/gu, '') };
+      }
+    } else if (action.type === 'SET_EMIT_START_CONVERSATION_EVENT') {
+      if (state.emitStartConversationEvent !== action.payload) {
+        state = { ...state, emitStartConversationEvent: action.payload };
       }
     } else if (action.type === 'SET_ENVIRONMENT_ID') {
       if (state.environmentID !== action.payload) {
@@ -171,6 +180,12 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
     [dispatch]
   );
 
+  const setEmitStartConversationEvent = useCallback(
+    (emitStartConversationEvent: boolean) =>
+      dispatch({ payload: emitStartConversationEvent, type: 'SET_EMIT_START_CONVERSATION_EVENT' }),
+    [dispatch]
+  );
+
   const setEnvironmentID = useCallback(
     (environmentID: string) => dispatch({ payload: environmentID, type: 'SET_ENVIRONMENT_ID' }),
     [dispatch]
@@ -210,6 +225,7 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
         setBotIdentifier,
         setBotSchema,
         setDeltaToken,
+        setEmitStartConversationEvent,
         setEnvironmentID,
         setHostnameSuffix,
         setIslandURI,
@@ -221,6 +237,7 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
       setBotIdentifier,
       setBotSchema,
       setDeltaToken,
+      setEmitStartConversationEvent,
       setEnvironmentID,
       setHostnameSuffix,
       setToken,

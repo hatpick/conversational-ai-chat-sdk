@@ -13,6 +13,7 @@ type SubmittedCredential = {
   botIdentifier: string;
   botSchema: string;
   deltaToken: string;
+  emitStartConversationEvent: boolean;
   environmentID: string;
   hostnameSuffix: string;
   key: number;
@@ -27,13 +28,25 @@ type CredentialFormChangeCallback = Exclude<PropsOf<typeof CredentialForm>['onCh
 
 export default memo(function App() {
   const [
-    { botIdentifier, botSchema, deltaToken, environmentID, hostnameSuffix, islandURI, token, transport, type },
+    {
+      botIdentifier,
+      botSchema,
+      deltaToken,
+      emitStartConversationEvent,
+      environmentID,
+      hostnameSuffix,
+      islandURI,
+      token,
+      transport,
+      type
+    },
     {
       reset,
       saveToSessionStorage,
       setBotIdentifier,
       setBotSchema,
       setDeltaToken,
+      setEmitStartConversationEvent,
       setEnvironmentID,
       setHostnameSuffix,
       setIslandURI,
@@ -46,6 +59,7 @@ export default memo(function App() {
   const botIdentifierRef = useRefFrom(botIdentifier);
   const botSchemaRef = useRefFrom(botSchema);
   const deltaTokenRef = useRefFrom(deltaToken);
+  const emitStartConversationEventRef = useRefFrom(emitStartConversationEvent);
   const environmentIDRef = useRefFrom(environmentID);
   const hostnameSuffixRef = useRefFrom(hostnameSuffix);
   const islandURIRef = useRefFrom(islandURI);
@@ -54,10 +68,22 @@ export default memo(function App() {
   const typeRef = useRefFrom(type);
 
   const handleCredentialFormChange = useCallback<CredentialFormChangeCallback>(
-    ({ botIdentifier, botSchema, deltaToken, environmentID, hostnameSuffix, islandURI, token, transport, type }) => {
+    ({
+      botIdentifier,
+      botSchema,
+      deltaToken,
+      emitStartConversationEvent,
+      environmentID,
+      hostnameSuffix,
+      islandURI,
+      token,
+      transport,
+      type
+    }) => {
       setBotIdentifier(botIdentifier);
       setBotSchema(botSchema);
       setDeltaToken(deltaToken);
+      setEmitStartConversationEvent(emitStartConversationEvent);
       setEnvironmentID(environmentID);
       setHostnameSuffix(hostnameSuffix);
       setIslandURI(islandURI);
@@ -72,6 +98,7 @@ export default memo(function App() {
       setBotIdentifier,
       setBotSchema,
       setDeltaToken,
+      setEmitStartConversationEvent,
       setEnvironmentID,
       setHostnameSuffix,
       setIslandURI,
@@ -89,6 +116,7 @@ export default memo(function App() {
         botIdentifier: botIdentifierRef.current,
         botSchema: botSchemaRef.current,
         deltaToken: deltaTokenRef.current,
+        emitStartConversationEvent: emitStartConversationEventRef.current,
         environmentID: environmentIDRef.current,
         hostnameSuffix: hostnameSuffixRef.current,
         islandURI: islandURIRef.current,
@@ -101,6 +129,7 @@ export default memo(function App() {
       botIdentifierRef,
       botSchemaRef,
       deltaTokenRef,
+      emitStartConversationEventRef,
       environmentIDRef,
       hostnameSuffixRef,
       setSubmittedCredential,
@@ -118,6 +147,7 @@ export default memo(function App() {
         botIdentifier={botIdentifier}
         botSchema={botSchema}
         deltaToken={deltaToken}
+        emitStartConversationEvent={emitStartConversationEvent}
         environmentID={environmentID}
         hostnameSuffix={hostnameSuffix}
         islandURI={islandURI}
@@ -133,6 +163,7 @@ export default memo(function App() {
           ? submittedCredential.botSchema && (
               <WebChatViaPublishedBot
                 botSchema={submittedCredential.botSchema}
+                emitStartConversationEvent={emitStartConversationEvent}
                 environmentID={submittedCredential.environmentID}
                 hostnameSuffix={submittedCredential.hostnameSuffix}
                 key={submittedCredential.key}
@@ -145,6 +176,7 @@ export default memo(function App() {
               <WebChatViaTestCanvasBot
                 botId={submittedCredential.botIdentifier}
                 deltaToken={submittedCredential.deltaToken}
+                emitStartConversationEvent={emitStartConversationEvent}
                 environmentId={submittedCredential.environmentID}
                 islandURI={submittedCredential.islandURI}
                 key={submittedCredential.key}
@@ -155,6 +187,7 @@ export default memo(function App() {
           : submittedCredential.botIdentifier && (
               <WebChatViaPrebuiltBot
                 botIdentifier={submittedCredential.botIdentifier}
+                emitStartConversationEvent={emitStartConversationEvent}
                 environmentID={submittedCredential.environmentID}
                 hostnameSuffix={submittedCredential.hostnameSuffix}
                 key={submittedCredential.key}

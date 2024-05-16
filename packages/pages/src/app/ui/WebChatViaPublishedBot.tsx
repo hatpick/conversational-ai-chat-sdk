@@ -10,13 +10,21 @@ import ReactWebChatShim from './ReactWebChatShim';
 
 type Props = {
   botSchema: string;
+  emitStartConversationEvent: boolean;
   environmentID: string;
   hostnameSuffix: string;
   token: string;
   transport: Transport;
 };
 
-export default memo(function WebChat({ botSchema, environmentID, hostnameSuffix, token, transport }: Props) {
+export default memo(function WebChat({
+  botSchema,
+  emitStartConversationEvent,
+  environmentID,
+  hostnameSuffix,
+  token,
+  transport
+}: Props) {
   // Should use PowerPlatformApiDiscovery to find out the base URL.
   const environmentIDWithoutHyphens = useMemo(() => environmentID.replaceAll('-', ''), [environmentID]);
   const getTokenCallback = useCallback<() => Promise<string>>(() => Promise.resolve(token), [token]);
@@ -38,7 +46,10 @@ export default memo(function WebChat({ botSchema, environmentID, hostnameSuffix,
     [botSchema, environmentEndpointURL, getTokenCallback, transport]
   );
 
-  const chatAdapter = useMemo(() => toDirectLineJS(createHalfDuplexChatAdapter(strategy)), [strategy]);
+  const chatAdapter = useMemo(
+    () => toDirectLineJS(createHalfDuplexChatAdapter(strategy, { emitStartConversationEvent })),
+    [emitStartConversationEvent, strategy]
+  );
 
   useEffect(() => () => chatAdapter?.end(), [chatAdapter]);
 

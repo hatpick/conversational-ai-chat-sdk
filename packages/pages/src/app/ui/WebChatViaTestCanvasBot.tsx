@@ -12,13 +12,22 @@ import ReactWebChatShim from './ReactWebChatShim';
 type Props = {
   botId: string;
   deltaToken: string;
+  emitStartConversationEvent: boolean;
   environmentId: string;
   islandURI: string;
   token: string;
   transport: Transport;
 };
 
-export default memo(function WebChat({ botId, deltaToken, environmentId, islandURI, token, transport }: Props) {
+export default memo(function WebChat({
+  botId,
+  deltaToken,
+  emitStartConversationEvent,
+  environmentId,
+  islandURI,
+  token,
+  transport
+}: Props) {
   const deltaTokenRef = useRefFrom(deltaToken);
   const tokenRef = useRefFrom(token);
   const getDeltaToken = useCallback<() => string | undefined>(() => deltaTokenRef.current, [deltaTokenRef]);
@@ -37,7 +46,10 @@ export default memo(function WebChat({ botId, deltaToken, environmentId, islandU
     [botId, environmentId, getDeltaToken, getToken, islandURI, transport]
   );
 
-  const chatAdapter = useMemo(() => toDirectLineJS(createHalfDuplexChatAdapter(strategy)), [strategy]);
+  const chatAdapter = useMemo(
+    () => toDirectLineJS(createHalfDuplexChatAdapter(strategy, { emitStartConversationEvent })),
+    [emitStartConversationEvent, strategy]
+  );
 
   useEffect(
     () => () => {
