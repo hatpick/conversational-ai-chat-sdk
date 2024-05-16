@@ -11,6 +11,21 @@ import type { ExecuteTurnFunction, TurnGenerator } from './createHalfDuplexChatA
 import iterateWithReturnValue from './private/iterateWithReturnValue';
 import { type ActivityId, type DirectLineJSBotConnection } from './types/DirectLineJSBotConnection';
 
+function once(fn: () => Promise<void>): () => Promise<void>;
+function once(fn: () => void): () => void;
+
+function once(fn: () => Promise<void> | void): () => Promise<void> | void {
+  let called = false;
+
+  return () => {
+    if (!called) {
+      called = true;
+
+      return fn();
+    }
+  };
+}
+
 export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): DirectLineJSBotConnection {
   let nextSequenceId = 0;
   let postActivityDeferred = new DeferredPromise<readonly [Activity, (id: ActivityId) => void]>();
@@ -32,9 +47,10 @@ export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): Di
 
       let activities: AsyncIterable<Activity>;
       let turnGenerator: TurnGenerator = halfDuplexChatAdapter;
-      let handleIncomingActivityOnce: (() => void) | undefined = () => connectionStatusDeferredObservable.next(2);
-
-      // await new Promise(resolve => setTimeout(resolve, 1_000));
+      let handleAcknowledgementOnce: () => Promise<void> | void = once(async () => {
+        connectionStatusDeferredObservable.next(2);
+        await 0; // HACK: Web Chat need a spare cycle between connectionStatus$ change and activity$ subscription.
+      });
 
       try {
         for (;;) {
@@ -43,13 +59,13 @@ export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): Di
           [activities, getExecuteTurn] = iterateWithReturnValue(turnGenerator);
 
           for await (const activity of activities) {
-            handleIncomingActivityOnce?.();
-            handleIncomingActivityOnce = undefined;
-
-            await 0; // HACK: Web Chat need a spare cycle between connectionStatus$ change and activity$ subscription.
+            await handleAcknowledgementOnce();
 
             observer.next(patchActivity(activity));
           }
+
+          // If no activities received from bot, we should still acknowledge.
+          await handleAcknowledgementOnce();
 
           const executeTurn = getExecuteTurn();
           const [activity, callback] = await postActivityDeferred.promise;
@@ -60,12 +76,12 @@ export default function toDirectLineJS(halfDuplexChatAdapter: TurnGenerator): Di
 
           // We will generate the activity ID and echoback the activity only when the first incoming activity arrived.
           // This make sure the bot acknowledged the outgoing activity before we echoback the activity.
-          handleIncomingActivityOnce = () => {
+          handleAcknowledgementOnce = once(() => {
             const activityId = v4() as ActivityId;
 
             observer.next(patchActivity({ ...activity, id: activityId }));
             callback(activityId);
-          };
+          });
         }
       } catch (error) {
         console.error('Failed to communicate with the chat adapter.', error);
