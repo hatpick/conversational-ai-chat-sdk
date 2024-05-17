@@ -66,14 +66,14 @@ export default memo(function WebChat({
     <Fragment>
       <h2>Chat adapter strategy parameters</h2>
       <pre>
-        new TestCanvasBotStrategy({'{'}
+        {'new TestCanvasBotStrategy({'}
         {`\n  botId: '${botId}',`}
         {`\n  getDeltaToken: () => '${deltaToken.slice(0, 5)}…',`}
         {`\n  environmentId: '${environmentId.toString()}',`}
-        {`\n  getToken: () => ${token.slice(0, 5)}…`}
+        {`\n  getToken: () => '${token.slice(0, 5)}…',`}
         {`\n  islandURI: new URL('${islandURI.toString()}'),`}
         {`\n  transport: '${transport}'`}
-        {`\n}`})
+        {`\n})`}
       </pre>
       <div className="webchat">
         <ReactWebChatShim directLine={chatAdapter} />

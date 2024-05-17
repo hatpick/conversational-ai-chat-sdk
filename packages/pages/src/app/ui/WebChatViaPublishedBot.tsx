@@ -27,7 +27,7 @@ export default memo(function WebChat({
 }: Props) {
   // Should use PowerPlatformApiDiscovery to find out the base URL.
   const environmentIDWithoutHyphens = useMemo(() => environmentID.replaceAll('-', ''), [environmentID]);
-  const getTokenCallback = useCallback<() => Promise<string>>(() => Promise.resolve(token), [token]);
+  const getToken = useCallback<() => Promise<string>>(() => Promise.resolve(token), [token]);
   const hostnameShardLength = useMemo(() => (hostnameSuffix === 'api.powerplatform.com' ? 2 : 1), [hostnameSuffix]);
 
   const hostnamePrefix = useMemo(
@@ -42,8 +42,8 @@ export default memo(function WebChat({
   const environmentEndpointURL = new URL(`https://${hostnamePrefix}.environment.${hostnameSuffix}`);
 
   const strategy = useMemo(
-    () => new PublishedBotStrategy({ botSchema, environmentEndpointURL, getTokenCallback, transport }),
-    [botSchema, environmentEndpointURL, getTokenCallback, transport]
+    () => new PublishedBotStrategy({ botSchema, environmentEndpointURL, getToken, transport }),
+    [botSchema, environmentEndpointURL, getToken, transport]
   );
 
   const chatAdapter = useMemo(
@@ -57,12 +57,12 @@ export default memo(function WebChat({
     <Fragment>
       <h2>Chat adapter strategy parameters</h2>
       <pre>
-        new PublishedBotStrategy({'{'}
-        {'\n  '}botSchema: {`'${botSchema}',`}
-        {'\n  '}environmentEndpointURL: {`'${environmentEndpointURL.toString()}',`}
-        {'\n  '}getTokenCallback: () =&gt; token,
-        {'\n  '}transport: {`'${transport}'`}
-        {'\n}'})
+        {`new PublishedBotStrategy({`}
+        {`\n  botSchema: '${botSchema}',`}
+        {`\n  environmentEndpointURL: '${environmentEndpointURL.toString()}',`}
+        {`\n  getTokenCallback: () => '${token.slice(0, 5)}…',`}
+        {`\n  transport: '${transport}'`}
+        {`\n})`}
       </pre>
       <div className="webchat">
         <ReactWebChatShim directLine={chatAdapter} />
