@@ -60,7 +60,7 @@ export default memo(function WebChat({
         {`new PublishedBotStrategy({`}
         {`\n  botSchema: '${botSchema}',`}
         {`\n  environmentEndpointURL: '${environmentEndpointURL.toString()}',`}
-        {`\n  getTokenCallback: () => '${token.slice(0, 5)}…',`}
+        {`\n  getToken: () => '${token.slice(0, 5)}…',`}
         {`\n  transport: '${transport}'`}
         {`\n})`}
       </pre>

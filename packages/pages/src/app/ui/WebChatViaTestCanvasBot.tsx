@@ -68,8 +68,8 @@ export default memo(function WebChat({
       <pre>
         {'new TestCanvasBotStrategy({'}
         {`\n  botId: '${botId}',`}
-        {`\n  getDeltaToken: () => '${deltaToken.slice(0, 5)}…',`}
         {`\n  environmentId: '${environmentId.toString()}',`}
+        {`\n  getDeltaToken: () => '${deltaToken.slice(0, 5)}…',`}
         {`\n  getToken: () => '${token.slice(0, 5)}…',`}
         {`\n  islandURI: new URL('${islandURI.toString()}'),`}
         {`\n  transport: '${transport}'`}
