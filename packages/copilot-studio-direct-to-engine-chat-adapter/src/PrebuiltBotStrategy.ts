@@ -20,7 +20,7 @@ const PrebuiltBotStrategyInitSchema = () =>
     {
       botIdentifier: string([regex(UUID_REGEX)]),
       environmentEndpointURL: special(input => input instanceof URL) as SpecialSchema<URL>,
-      getTokenCallback: special(input => typeof input === 'function') as SpecialSchema<() => Promise<string>>,
+      getToken: special(input => typeof input === 'function') as SpecialSchema<() => Promise<string>>,
       transport: union([
         string([value('rest')]) as StringSchema<'rest'>,
         string([value('server sent events')]) as StringSchema<'server sent events'>
@@ -34,8 +34,8 @@ type PrebuiltBotStrategyInit = Output<ReturnType<typeof PrebuiltBotStrategyInitS
 const API_VERSION = '2022-03-01-preview';
 
 export default class PublishedBotStrategy implements Strategy {
-  constructor({ botIdentifier, environmentEndpointURL, getTokenCallback, transport }: PrebuiltBotStrategyInit) {
-    this.#getTokenCallback = getTokenCallback;
+  constructor({ botIdentifier, environmentEndpointURL, getToken, transport }: PrebuiltBotStrategyInit) {
+    this.#getToken = getToken;
     this.#transport = transport;
 
     const url = new URL(`/powervirtualagents/prebuilt/authenticated/bots/${botIdentifier}/`, environmentEndpointURL);
@@ -46,11 +46,11 @@ export default class PublishedBotStrategy implements Strategy {
   }
 
   #baseURL: URL;
-  #getTokenCallback: () => Promise<string>;
+  #getToken: () => Promise<string>;
   #transport: Transport;
 
   async #getHeaders() {
-    return new Headers({ authorization: `Bearer ${await this.#getTokenCallback()}` });
+    return new Headers({ authorization: `Bearer ${await this.#getToken()}` });
   }
 
   public async prepareExecuteTurn(): ReturnType<Strategy['prepareExecuteTurn']> {

@@ -20,7 +20,7 @@ const PublishedBotStrategyInitSchema = () =>
     {
       botSchema: string([regex(UUID_REGEX)]),
       environmentEndpointURL: special(input => input instanceof URL) as SpecialSchema<URL>,
-      getTokenCallback: special(input => typeof input === 'function') as SpecialSchema<() => Promise<string>>,
+      getToken: special(input => typeof input === 'function') as SpecialSchema<() => Promise<string>>,
       transport: union([
         string([value('rest')]) as StringSchema<'rest'>,
         string([value('server sent events')]) as StringSchema<'server sent events'>
@@ -34,8 +34,8 @@ type PublishedBotStrategyInit = Output<ReturnType<typeof PublishedBotStrategyIni
 const API_VERSION = '2022-03-01-preview';
 
 export default class PublishedBotStrategy implements Strategy {
-  constructor({ botSchema, environmentEndpointURL, getTokenCallback, transport }: PublishedBotStrategyInit) {
-    this.#getTokenCallback = getTokenCallback;
+  constructor({ botSchema, environmentEndpointURL, getToken, transport }: PublishedBotStrategyInit) {
+    this.#getToken = getToken;
     this.#transport = transport;
 
     const url = new URL(
@@ -49,11 +49,11 @@ export default class PublishedBotStrategy implements Strategy {
   }
 
   #baseURL: URL;
-  #getTokenCallback: () => Promise<string>;
+  #getToken: () => Promise<string>;
   #transport: Transport;
 
   async #getHeaders() {
-    return new Headers({ authorization: `Bearer ${await this.#getTokenCallback()}` });
+    return new Headers({ authorization: `Bearer ${await this.#getToken()}` });
   }
 
   public async prepareExecuteTurn(): ReturnType<Strategy['prepareExecuteTurn']> {
