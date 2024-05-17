@@ -140,8 +140,8 @@ export default memo(function App() {
 
   return (
     <Fragment>
-      <h1>Power Virtual Agents chat adapter demo</h1>
-      <h2>Credential</h2>
+      <h1>Copilot Studio chat adapter demo</h1>
+      <h2>Credentials</h2>
       <CredentialForm
         autoFocus={!!(botIdentifier && environmentID && token)}
         botIdentifier={botIdentifier}
