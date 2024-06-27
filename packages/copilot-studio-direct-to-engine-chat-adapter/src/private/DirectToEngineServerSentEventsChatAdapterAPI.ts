@@ -221,6 +221,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
     }
   ): AsyncIterableIterator<Activity> {
     return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
+      const typingMap = new Map<string, string>();
       let currentResponse: Response;
 
       const responseBodyPromise = pRetry(
@@ -300,6 +301,20 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
                 // TODO: Should be replaced by something in HTTP header or "init" event.
                 if (!this.#conversationId && activity.conversation?.id) {
                   this.#conversationId = activity.conversation.id;
+                }
+
+                // Accumulating intermediate result by concatenating with previous result.
+                if (
+                  activity.type === 'typing' &&
+                  activity.text &&
+                  activity.channelData?.streamType === 'streaming' &&
+                  activity.channelData?.chunkType === 'delta'
+                ) {
+                  const streamId = activity.channelData?.streamId || activity.id;
+                  const accumulated = (typingMap.get(streamId) || '') + activity.text;
+
+                  typingMap.set(streamId, accumulated);
+                  activity.text = accumulated;
                 }
 
                 controller.enqueue(activity);
