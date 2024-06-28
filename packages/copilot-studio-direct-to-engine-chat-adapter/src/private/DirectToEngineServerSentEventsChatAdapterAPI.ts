@@ -1,12 +1,13 @@
 import { type Activity } from 'botframework-directlinejs';
 import { EventSourceParserStream, type ParsedEvent } from 'eventsource-parser/stream';
+import { asyncGeneratorWithLastValue } from 'iter-fest';
 import pRetry from 'p-retry';
 
 import { type Strategy } from '../types/Strategy';
 import { type Transport } from '../types/Transport';
 import iterateReadableStream from './iterateReadableStream';
 import { resolveURLWithQueryAndHash } from './resolveURLWithQueryAndHash';
-import { parseBotResponse, type BotResponse } from './types/BotResponse';
+import { parseBotResponse } from './types/BotResponse';
 import { parseConversationId, type ConversationId } from './types/ConversationId';
 import { type HalfDuplexChatAdapterAPI, type StartNewConversationInit } from './types/HalfDuplexChatAdapterAPI';
 
@@ -112,54 +113,122 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
       transport?: Transport | undefined;
     }
   ): AsyncIterableIterator<Activity> {
-    if (transport === 'server sent events') {
-      return this.#postWithServerSentEvents(baseURL, { body: { ...body, ...initialBody }, headers });
-    }
-
-    return this.#postWithREST(baseURL, { body, headers, initialBody });
-  }
-
-  #postWithREST(
-    baseURL: URL,
-    {
-      body,
-      headers,
-      initialBody
-    }: {
-      body?: Record<string, unknown> | undefined;
-      headers?: Headers | undefined;
-      initialBody?: Record<string, unknown> | undefined;
-    }
-  ): AsyncIterableIterator<Activity> {
     return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
+      const typingMap = new Map<string, string>();
+
       for (let numTurn = 0; numTurn < MAX_CONTINUE_TURN; numTurn++) {
         const isContinueTurn = !!numTurn;
         let currentResponse: Response;
 
-        const botResponsePromise = pRetry(
-          async (): Promise<BotResponse> => {
-            const url = resolveURLWithQueryAndHash(
-              baseURL,
-              'conversations',
-              this.#conversationId,
-              isContinueTurn && 'continue'
-            );
+        const activityGeneratorPromise = pRetry(
+          async (): Promise<AsyncGenerator<Activity, 'continue' | 'end'>> => {
             const requestHeaders = new Headers(headers);
 
             this.#conversationId && requestHeaders.set('x-ms-conversationid', this.#conversationId);
+            requestHeaders.set(
+              'accept',
+              transport === 'rest' ? 'application/json' : 'text/event-stream,application/json;q=0.9'
+            );
             requestHeaders.set('content-type', 'application/json');
 
-            currentResponse = await fetch(url.toString(), {
-              body: JSON.stringify(isContinueTurn ? body : { ...body, ...initialBody }),
-              headers: requestHeaders,
-              method: 'POST'
-            });
+            currentResponse = await fetch(
+              resolveURLWithQueryAndHash(baseURL, 'conversations', this.#conversationId, isContinueTurn && 'continue'),
+              {
+                body: JSON.stringify(isContinueTurn ? body : { ...body, ...initialBody }),
+                headers: requestHeaders,
+                method: 'POST'
+              }
+            );
 
             if (!currentResponse.ok) {
               throw new Error(`Server returned ${currentResponse.status} while calling the service.`);
             }
 
-            return parseBotResponse(await currentResponse.json());
+            const contentType = currentResponse.headers.get('content-type');
+
+            if (contentType === 'application/json') {
+              const botResponse = parseBotResponse(await currentResponse.json());
+
+              if (!this.#conversationId) {
+                if (!botResponse.conversationId) {
+                  throw new Error('HTTP response from start new conversation must have "conversationId".');
+                }
+
+                this.#conversationId = botResponse.conversationId;
+              }
+
+              return (async function* (): AsyncGenerator<Activity, 'continue' | 'end'> {
+                for (const activity of botResponse.activities) {
+                  yield activity;
+                }
+
+                return botResponse.action === 'continue' ? botResponse.action : 'end';
+              })();
+            } else if (contentType === 'text/event-stream') {
+              if (transport === 'rest') {
+                throw new Error(
+                  'Protocol mismatch. Server returning Server-Sent Events while client requesting REST API.'
+                );
+              }
+
+              const conversationId = currentResponse.headers.get('x-ms-conversationid');
+
+              if (conversationId) {
+                this.#conversationId = parseConversationId(conversationId);
+              }
+
+              const { body } = currentResponse;
+
+              if (!body) {
+                throw new Error(`Server did not respond with body in event stream mode.`);
+              }
+
+              const readableStream = body
+                .pipeThrough(new TextDecoderStream())
+                .pipeThrough(new EventSourceParserStream())
+                .pipeThrough(
+                  new TransformStream<ParsedEvent, Activity>({
+                    transform: ({ data, event }, controller) => {
+                      if (event === 'end') {
+                        controller.terminate();
+                      } else if (event === 'activity') {
+                        const activity = JSON.parse(data);
+
+                        // TODO: Should be replaced by something in HTTP header or "init" event.
+                        if (!this.#conversationId && activity.conversation?.id) {
+                          this.#conversationId = activity.conversation.id;
+                        }
+
+                        // Specific to DtE SSE protocol, this will accumulate intermediate result by concatenating with previous result.
+                        if (
+                          activity.type === 'typing' &&
+                          activity.text &&
+                          activity.channelData?.streamType === 'streaming' &&
+                          activity.channelData?.chunkType === 'delta'
+                        ) {
+                          const streamId = activity.channelData?.streamId || activity.id;
+                          const accumulated = (typingMap.get(streamId) || '') + activity.text;
+
+                          typingMap.set(streamId, accumulated);
+                          activity.text = accumulated;
+                        }
+
+                        controller.enqueue(activity);
+                      }
+                    }
+                  })
+                );
+
+              return (async function* () {
+                for await (const activity of iterateReadableStream(readableStream)) {
+                  yield activity;
+                }
+
+                return 'end' as const;
+              })();
+            }
+
+            throw new Error(`Received unknown HTTP header "Content-Type: ${contentType}".`);
           },
           {
             ...this.#retry,
@@ -174,7 +243,7 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
         const telemetry = this.#telemetry;
 
         telemetry &&
-          botResponsePromise.catch((error: unknown) => {
+          activityGeneratorPromise.catch((error: unknown) => {
             // TODO [hawo]: We should rework on this telemetry for a couple of reasons:
             //              1. We did not handle it, why call it "handledAt"?
             //              2. We should indicate this error is related to the protocol
@@ -188,143 +257,15 @@ export default class DirectToEngineServerSentEventsChatAdapterAPI implements Hal
               );
           });
 
-        const botResponse = await botResponsePromise;
+        const activities = asyncGeneratorWithLastValue(await activityGeneratorPromise);
 
-        if (!this.#conversationId) {
-          if (!botResponse.conversationId) {
-            // TODO: Test this.
-            throw new Error('HTTP response from start new conversation must have "conversationId".');
-          }
-
-          this.#conversationId = botResponse.conversationId;
-        }
-
-        for await (const activity of botResponse.activities) {
+        for await (const activity of activities) {
           yield activity;
         }
 
-        if (botResponse.action !== 'continue') {
+        if (activities.lastValue() === 'end') {
           break;
         }
-      }
-    }.call(this);
-  }
-
-  #postWithServerSentEvents(
-    baseURL: URL,
-    {
-      body,
-      headers
-    }: {
-      body?: Record<string, unknown> | undefined;
-      headers?: Headers | undefined;
-    }
-  ): AsyncIterableIterator<Activity> {
-    return async function* (this: DirectToEngineServerSentEventsChatAdapterAPI) {
-      const typingMap = new Map<string, string>();
-      let currentResponse: Response;
-
-      const responseBodyPromise = pRetry(
-        async (): Promise<ReadableStream<Uint8Array>> => {
-          const requestHeaders = new Headers(headers);
-
-          this.#conversationId && requestHeaders.set('x-ms-conversationid', this.#conversationId);
-          requestHeaders.set('accept', 'text/event-stream');
-          requestHeaders.set('content-type', 'application/json');
-
-          currentResponse = await fetch(resolveURLWithQueryAndHash(baseURL, 'conversations', this.#conversationId), {
-            body: JSON.stringify(body),
-            headers: requestHeaders,
-            method: 'POST'
-          });
-
-          if (!currentResponse.ok) {
-            throw new Error(`Server returned ${currentResponse.status} while calling the service.`);
-          }
-
-          const contentType = currentResponse.headers.get('content-type');
-
-          if (!/^text\/event-stream(;|$)/.test(contentType || '')) {
-            throw new Error(
-              `Server did not respond with content type of "text/event-stream", instead, received "${contentType}".`
-            );
-          } else if (!currentResponse.body) {
-            throw new Error(`Server did not respond with body.`);
-          }
-
-          const conversationId = currentResponse.headers.get('x-ms-conversationid');
-
-          if (conversationId) {
-            this.#conversationId = parseConversationId(conversationId);
-          }
-
-          return currentResponse.body;
-        },
-        {
-          ...this.#retry,
-          onFailedAttempt(error: unknown) {
-            if (currentResponse?.status < 500) {
-              throw error;
-            }
-          }
-        }
-      );
-
-      const telemetry = this.#telemetry;
-
-      telemetry &&
-        responseBodyPromise.catch((error: unknown) => {
-          // TODO [hawo]: We should rework on this telemetry for a couple of reasons:
-          //              1. We did not handle it, why call it "handledAt"?
-          //              2. We should indicate this error is related to the protocol
-          error instanceof Error &&
-            telemetry.trackException(
-              { error },
-              {
-                handledAt: 'withRetries',
-                retryCount: this.#retry.retries + 1 + ''
-              }
-            );
-        });
-
-      const readableStream = (await responseBodyPromise)
-        .pipeThrough(new TextDecoderStream())
-        .pipeThrough(new EventSourceParserStream())
-        .pipeThrough(
-          new TransformStream<ParsedEvent, Activity>({
-            transform: ({ data, event }, controller) => {
-              if (event === 'end') {
-                controller.terminate();
-              } else if (event === 'activity') {
-                const activity = JSON.parse(data);
-
-                // TODO: Should be replaced by something in HTTP header or "init" event.
-                if (!this.#conversationId && activity.conversation?.id) {
-                  this.#conversationId = activity.conversation.id;
-                }
-
-                // Accumulating intermediate result by concatenating with previous result.
-                if (
-                  activity.type === 'typing' &&
-                  activity.text &&
-                  activity.channelData?.streamType === 'streaming' &&
-                  activity.channelData?.chunkType === 'delta'
-                ) {
-                  const streamId = activity.channelData?.streamId || activity.id;
-                  const accumulated = (typingMap.get(streamId) || '') + activity.text;
-
-                  typingMap.set(streamId, accumulated);
-                  activity.text = accumulated;
-                }
-
-                controller.enqueue(activity);
-              }
-            }
-          })
-        );
-
-      for await (const activity of iterateReadableStream(readableStream)) {
-        yield activity;
       }
     }.call(this);
   }

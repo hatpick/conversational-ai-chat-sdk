@@ -165,8 +165,13 @@ data: end
             expect(new URL(httpPostConversation.mock.calls[0][0].request.url)).toHaveProperty('hash', '#1'));
 
           if (transport === 'server sent events') {
-            test('with header "Accept" of "text/event-stream"', () =>
-              expect(httpPostConversation.mock.calls[0][0].request.headers.get('accept')).toBe('text/event-stream'));
+            test('with header "Accept" of "text/event-stream,application/json;q=0.9"', () =>
+              expect(httpPostConversation.mock.calls[0][0].request.headers.get('accept')).toBe(
+                'text/event-stream,application/json;q=0.9'
+              ));
+          } else {
+            test('with header "Accept" of "application/json"', () =>
+              expect(httpPostConversation.mock.calls[0][0].request.headers.get('accept')).toBe('application/json'));
           }
 
           test('with header "Content-Type" of "application/json"', () =>
@@ -335,8 +340,13 @@ data: end
                 expect(new URL(httpPostExecute.mock.calls[0][0].request.url)).toHaveProperty('hash', '#2'));
 
               if (transport === 'server sent events') {
-                test('with header "Accept" of "text/event-stream"', () =>
-                  expect(httpPostExecute.mock.calls[0][0].request.headers.get('accept')).toBe('text/event-stream'));
+                test('with header "Accept" of "text/event-stream,application/json;q=0.9"', () =>
+                  expect(httpPostExecute.mock.calls[0][0].request.headers.get('accept')).toBe(
+                    'text/event-stream,application/json;q=0.9'
+                  ));
+              } else {
+                test('with header "Accept" of "application/json"', () =>
+                  expect(httpPostExecute.mock.calls[0][0].request.headers.get('accept')).toBe('application/json'));
               }
 
               test('with header "Content-Type" of "application/json"', () =>
