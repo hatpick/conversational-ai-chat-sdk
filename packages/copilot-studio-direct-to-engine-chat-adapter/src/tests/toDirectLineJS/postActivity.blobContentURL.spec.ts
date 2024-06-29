@@ -1,4 +1,5 @@
 import type { ConnectionStatus } from 'botframework-directlinejs';
+import { type Observable } from 'powerva-turn-based-chat-adapter-framework';
 
 import type { TurnGenerator } from '../../createHalfDuplexChatAdapter';
 import DeferredQueue from '../../private/DeferredQueue';
@@ -53,12 +54,54 @@ describe('with a TurnGenerator', () => {
     test('with "Connecting"', () => expect(connectionStatusObserver).toHaveBeenNthCalledWith(2, 1));
   });
 
-  describe('when bot ended the turn', () => {
+  describe('when greeting turn ended', () => {
     beforeEach(() => incomingActivityQueue.push(END_TURN));
 
-    describe('should call the connnectionStatus observer', () => {
-      test('once', () => expect(connectionStatusObserver).toHaveBeenCalledTimes(3));
-      test('with "Online"', () => expect(connectionStatusObserver).toHaveBeenNthCalledWith(3, 2));
+    test('should not call next turn', () => expect(nextTurn).toHaveBeenCalledTimes(1));
+
+    describe('when post activity', () => {
+      let postActivityObservable: Observable<string>;
+
+      beforeEach(() => {
+        const buffer = new ArrayBuffer(3);
+        const view = new Uint8Array(buffer);
+
+        view.set([1, 2, 3]);
+
+        postActivityObservable = directLineJS.postActivity({
+          attachments: [
+            { contentType: 'application/octet-stream', contentUrl: URL.createObjectURL(new Blob([buffer])) }
+          ],
+          from: { id: 'u-00001' },
+          text: 'Aloha!',
+          type: 'message'
+        });
+      });
+
+      test('should not call next turn', () => expect(nextTurn).toHaveBeenCalledTimes(1));
+
+      describe('when subscribe the post activity', () => {
+        let postActivityObserver: JestMockOf<(id: string) => void>;
+
+        beforeEach(() => {
+          postActivityObserver = jest.fn();
+          postActivityObservable.subscribe(postActivityObserver);
+        });
+
+        describe('should call next turn', () => {
+          test('once', () => expect(nextTurn).toHaveBeenCalledTimes(2));
+
+          test('with the attachment of ArrayBuffer', () =>
+            expect(nextTurn).toHaveBeenNthCalledWith(2, {
+              attachments: [
+                expect.objectContaining({ contentType: 'application/octet-stream', contentUrl: 'data:;base64,AQID' })
+              ],
+              from: { id: 'u-00001' },
+              text: 'Aloha!',
+              type: 'message'
+            }));
+        });
+      });
     });
   });
 });
