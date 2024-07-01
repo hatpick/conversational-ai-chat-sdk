@@ -1,10 +1,10 @@
+import { asyncIteratorToArray } from 'iter-fest';
 import { HttpResponse, http } from 'msw';
 import { setupServer } from 'msw/node';
 
 import type { Activity } from '../../../types/Activity';
 import type { Strategy } from '../../../types/Strategy';
-import DirectToEngineServerSentEventsChatAdapterAPI from '../../DirectToEngineServerSentEventsChatAdapterAPI';
-import asyncIterableToArray from '../../asyncIterableToArray';
+import DirectToEngineChatAdapterAPI from '../../DirectToEngineChatAdapterAPI';
 import type { BotResponse } from '../../types/BotResponse';
 import { parseConversationId } from '../../types/ConversationId';
 import type { DefaultHttpResponseResolver } from '../../types/DefaultHttpResponseResolver';
@@ -45,7 +45,7 @@ describe.each(['auto' as const, 'rest' as const])('Using "%s" transport', transp
   });
 
   describe.each([true, false])('With emitStartConversationEvent of %s', emitStartConversationEvent => {
-    let adapter: DirectToEngineServerSentEventsChatAdapterAPI;
+    let adapter: DirectToEngineChatAdapterAPI;
     let httpPostContinue: JestMockOf<DefaultHttpResponseResolver>;
     let httpPostConversation: JestMockOf<DefaultHttpResponseResolver>;
     let httpPostExecute: JestMockOf<DefaultHttpResponseResolver>;
@@ -59,13 +59,11 @@ describe.each(['auto' as const, 'rest' as const])('Using "%s" transport', transp
       server.use(http.post('http://test/conversations/c-00001', httpPostExecute));
       server.use(http.post('http://test/conversations/c-00001/continue', httpPostContinue));
 
-      adapter = new DirectToEngineServerSentEventsChatAdapterAPI(strategy, { retry: { factor: 1, minTimeout: 0 } });
+      adapter = new DirectToEngineChatAdapterAPI(strategy, { retry: { factor: 1, minTimeout: 0 } });
     });
 
     describe('When conversation started', () => {
-      let firstStartNewConversationResult: ReturnType<
-        DirectToEngineServerSentEventsChatAdapterAPI['startNewConversation']
-      >;
+      let firstStartNewConversationResult: ReturnType<DirectToEngineChatAdapterAPI['startNewConversation']>;
 
       beforeEach(async () => {
         if (transport === 'rest') {
@@ -128,7 +126,7 @@ data: end
           let activities: Activity[];
 
           beforeEach(async () => {
-            activities = await asyncIterableToArray(firstStartNewConversationResult);
+            activities = await asyncIteratorToArray(firstStartNewConversationResult);
           });
 
           test('should return all activities', () =>
