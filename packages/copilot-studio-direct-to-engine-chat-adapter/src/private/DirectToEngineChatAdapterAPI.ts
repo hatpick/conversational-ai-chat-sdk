@@ -176,15 +176,21 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
               const botResponse = parseBotResponse(await currentResponse.json());
 
               if (!this.#conversationId) {
-                if (!botResponse.conversationId) {
-                  const error = new Error('HTTP response from start new conversation must have "conversationId".');
+                const conversationIdInResponse = currentResponse.headers.has('x-ms-conversationid')
+                  ? (currentResponse.headers.get('x-ms-conversation-id') as ConversationId)
+                  : botResponse.conversationId;
+
+                if (!conversationIdInResponse) {
+                  const error = new Error(
+                    'HTTP REST response from start new conversation must have "x-ms-conversationid" in the header or "conversationId" in the body.'
+                  );
 
                   this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.#post' });
 
                   throw error;
                 }
 
-                this.#conversationId = botResponse.conversationId;
+                this.#conversationId = conversationIdInResponse;
               }
 
               return (async function* (): AsyncGenerator<Activity, 'continue' | 'end'> {
@@ -205,9 +211,19 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
                 throw error;
               }
 
-              const conversationId = currentResponse.headers.get('x-ms-conversationid');
+              if (!this.#conversationId) {
+                const conversationId = currentResponse.headers.get('x-ms-conversationid');
 
-              if (conversationId) {
+                if (!conversationId) {
+                  const error = new Error(
+                    'HTTP SSE response from start new conversation must have "x-ms-conversationid" in the header.'
+                  );
+
+                  this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.#post' });
+
+                  throw error;
+                }
+
                 this.#conversationId = parseConversationId(conversationId);
               }
 

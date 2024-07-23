@@ -46,7 +46,7 @@
     "eslint": "npm run precommit",
     "precommit": "eslint .",
     "prepack": "cp ../../LICENSE ./",
-    "start": "npm run build -- --watch",
+    "start": "npm run build -- --onSuccess \"touch ../pages/src/app/index.tsx\" --watch",
     "test": "jest --config jest.config.cjs"
   },
   "devDependencies": {
