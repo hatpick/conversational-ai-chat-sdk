@@ -4,6 +4,7 @@ import pRetry from 'p-retry';
 
 import { type Activity } from '../types/Activity';
 import { type Strategy } from '../types/Strategy';
+import { type Telemetry } from '../types/Telemetry';
 import { type Transport } from '../types/Transport';
 import { resolveURLWithQueryAndHash } from './resolveURLWithQueryAndHash';
 import { parseBotResponse } from './types/BotResponse';
@@ -20,7 +21,7 @@ export type DirectToEngineChatAdapterAPIInit = {
         retries?: number | undefined;
       }>
     | undefined;
-  telemetry?: { trackException(exception: unknown, customProperties?: Record<string, unknown>): void };
+  telemetry?: Telemetry | undefined;
 };
 
 const DEFAULT_RETRY_COUNT = 4; // Will call 5 times.
@@ -56,7 +57,11 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
     locale
   }: StartNewConversationInit): AsyncIterableIterator<Activity> {
     if (this.#busy) {
-      throw new Error('Another operation is in progress.');
+      const error = new Error('Another operation is in progress.');
+
+      this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.startNewConversation' });
+
+      throw error;
     }
 
     this.#busy = true;
@@ -64,7 +69,11 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
     return async function* (this: DirectToEngineChatAdapterAPI) {
       try {
         if (this.#conversationId) {
-          throw new Error('startNewConversation() cannot be called more than once.');
+          const error = new Error('startNewConversation() cannot be called more than once.');
+
+          this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.startNewConversation' });
+
+          throw error;
         }
 
         const { baseURL, body, headers, transport } = await this.#strategy.prepareStartNewConversation();
@@ -78,7 +87,11 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
 
   public executeTurn(activity: Activity): AsyncIterableIterator<Activity> {
     if (this.#busy) {
-      throw new Error('Another operation is in progress.');
+      const error = new Error('Another operation is in progress.');
+
+      this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.executeTurn' });
+
+      throw error;
     }
 
     this.#busy = true;
@@ -86,7 +99,11 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
     return async function* (this: DirectToEngineChatAdapterAPI) {
       try {
         if (!this.#conversationId) {
-          throw new Error(`startNewConversation() must be called before executeTurn().`);
+          const error = new Error(`startNewConversation() must be called before executeTurn().`);
+
+          this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.executeTurn' });
+
+          throw error;
         }
 
         const { baseURL, body, headers, transport } = await this.#strategy.prepareExecuteTurn();
@@ -133,6 +150,8 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
               'x-ms-chat-adapter',
               new URLSearchParams([['version', process.env.npm_package_version]] satisfies string[][]).toString()
             );
+            const correlationId = this.#telemetry?.correlationId;
+            correlationId && requestHeaders.set('x-ms-correlationid', correlationId);
 
             currentResponse = await fetch(
               resolveURLWithQueryAndHash(baseURL, 'conversations', this.#conversationId, isContinueTurn && 'continue'),
@@ -144,7 +163,11 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
             );
 
             if (!currentResponse.ok) {
-              throw new Error(`Server returned ${currentResponse.status} while calling the service.`);
+              const error = new Error(`Server returned ${currentResponse.status} while calling the service.`);
+
+              this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.#post' });
+
+              throw error;
             }
 
             const contentType = currentResponse.headers.get('content-type');
@@ -154,7 +177,11 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
 
               if (!this.#conversationId) {
                 if (!botResponse.conversationId) {
-                  throw new Error('HTTP response from start new conversation must have "conversationId".');
+                  const error = new Error('HTTP response from start new conversation must have "conversationId".');
+
+                  this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.#post' });
+
+                  throw error;
                 }
 
                 this.#conversationId = botResponse.conversationId;
@@ -169,9 +196,13 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
               })();
             } else if (contentType === 'text/event-stream') {
               if (transport === 'rest') {
-                throw new Error(
+                const error = new Error(
                   'Protocol mismatch. Server returning Server-Sent Events while client requesting REST API.'
                 );
+
+                this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.#post' });
+
+                throw error;
               }
 
               const conversationId = currentResponse.headers.get('x-ms-conversationid');
@@ -183,7 +214,11 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
               const { body } = currentResponse;
 
               if (!body) {
-                throw new Error(`Server did not respond with body in event stream mode.`);
+                const error = new Error(`Server did not respond with body in event stream mode.`);
+
+                this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.#post' });
+
+                throw error;
               }
 
               const readableStream = body
@@ -231,7 +266,11 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
               })();
             }
 
-            throw new Error(`Received unknown HTTP header "Content-Type: ${contentType}".`);
+            const error = new Error(`Received unknown HTTP header "Content-Type: ${contentType}".`);
+
+            this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.#post' });
+
+            throw error;
           },
           {
             ...this.#retry,
@@ -251,13 +290,10 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
             //              1. We did not handle it, why call it "handledAt"?
             //              2. We should indicate this error is related to the protocol
             error instanceof Error &&
-              telemetry.trackException(
-                { error },
-                {
-                  handledAt: 'withRetries',
-                  retryCount: this.#retry.retries + 1 + ''
-                }
-              );
+              telemetry.trackException(error, {
+                handledAt: 'DirectToEngineChatAdapterAPI.withRetries',
+                retryCount: this.#retry.retries + 1 + ''
+              });
           });
 
         const activities = asyncGeneratorWithLastValue(await activityGeneratorPromise);
