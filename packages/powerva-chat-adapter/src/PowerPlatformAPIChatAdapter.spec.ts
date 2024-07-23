@@ -66,7 +66,11 @@ describe('client with telemetry', () => {
       // TODO: [P0] This won't work on Node.js 20 because "fetch" is read only property.
       (globalThis.fetch as MockedFetch).mockImplementation(() => Promise.resolve(new Response('{}', { status: 200 })));
 
-      client.startNewConversation(true, { locale: 'zh-HAnt-HK', signal: abortController.signal });
+      client.startNewConversation(true, {
+        correlationId: '1234',
+        locale: 'zh-HAnt-HK',
+        signal: abortController.signal
+      });
     });
 
     test('fetch should be called once', () => expect(globalThis.fetch).toBeCalledTimes(1));
@@ -78,6 +82,7 @@ describe('client with telemetry', () => {
       expect((globalThis.fetch as MockedFetch).mock.calls[0][1]).toHaveProperty(
         'headers',
         expect.objectContaining({
+          'x-ms-correlationid': '1234',
           'x-test': 'dummy'
         })
       ));
@@ -164,7 +169,7 @@ describe('client with telemetry', () => {
       client.executeTurn(
         'c-00001',
         { from: { id: 'u-00001' }, text: 'Hello, World!', type: 'message' },
-        { signal: abortController.signal }
+        { correlationId: '1234', signal: abortController.signal }
       );
     });
 
@@ -180,6 +185,7 @@ describe('client with telemetry', () => {
         'headers',
         expect.objectContaining({
           'Content-Type': 'application/json',
+          'x-ms-correlationid': '1234',
           'x-test': 'dummy'
         })
       ));
@@ -199,7 +205,7 @@ describe('client with telemetry', () => {
     beforeEach(() => {
       (globalThis.fetch as MockedFetch).mockImplementation(() => Promise.resolve(new Response('{}', { status: 200 })));
 
-      client.continueTurn('c-00001', { signal: abortController.signal });
+      client.continueTurn('c-00001', { signal: abortController.signal, correlationId: '1234' });
     });
 
     test('fetch should be called once', () => expect(globalThis.fetch).toBeCalledTimes(1));
@@ -213,6 +219,7 @@ describe('client with telemetry', () => {
       expect((globalThis.fetch as MockedFetch).mock.calls[0][1]).toHaveProperty(
         'headers',
         expect.objectContaining({
+          'x-ms-correlationid': '1234',
           'x-test': 'dummy'
         })
       ));
@@ -221,6 +228,54 @@ describe('client with telemetry', () => {
         'body',
         JSON.stringify({
           test: 'dummy'
+        })
+      ));
+  });
+
+  describe('when startNewConversation() is called without correlationId', () => {
+    beforeEach(() => {
+      (globalThis.fetch as MockedFetch).mockImplementation(() => Promise.resolve(new Response('{}', { status: 200 })));
+
+      client.startNewConversation(true, {});
+    });
+
+    test('fetch should be called without correlationId header', () =>
+      expect((globalThis.fetch as MockedFetch).mock.calls[0][1]).toHaveProperty(
+        'headers',
+        expect.not.objectContaining({
+          'x-ms-correlationid': expect.anything()
+        })
+      ));
+  });
+
+  describe('when executeTurn() is called without correlationId', () => {
+    beforeEach(() => {
+      (globalThis.fetch as MockedFetch).mockImplementation(() => Promise.resolve(new Response('{}', { status: 200 })));
+
+      client.executeTurn('c-00001', { from: { id: 'u-00001' }, text: 'Hello, World!', type: 'message' }, {});
+    });
+
+    test('fetch should be called without correlationId header', () =>
+      expect((globalThis.fetch as MockedFetch).mock.calls[0][1]).toHaveProperty(
+        'headers',
+        expect.not.objectContaining({
+          'x-ms-correlationid': expect.anything()
+        })
+      ));
+  });
+
+  describe('when continueTurn() is called without correlationId', () => {
+    beforeEach(() => {
+      (globalThis.fetch as MockedFetch).mockImplementation(() => Promise.resolve(new Response('{}', { status: 200 })));
+
+      client.continueTurn('c-00001', {});
+    });
+
+    test('fetch should be called without correlationId header', () =>
+      expect((globalThis.fetch as MockedFetch).mock.calls[0][1]).toHaveProperty(
+        'headers',
+        expect.not.objectContaining({
+          'x-ms-correlationid': expect.anything()
         })
       ));
   });

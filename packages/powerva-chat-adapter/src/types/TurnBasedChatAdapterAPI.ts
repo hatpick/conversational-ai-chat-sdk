@@ -9,6 +9,7 @@ import type { StartResponse } from './private/StartResponse';
 import type { Activity } from 'botframework-directlinejs';
 
 type Options = {
+  correlationId?: string;
   signal?: AbortSignal;
 };
 
