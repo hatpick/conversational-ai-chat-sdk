@@ -5,11 +5,13 @@ import useAppReducer from '../data/useAppReducer';
 import { type PropsOf } from '../types/PropsOf';
 import { type Transport } from '../types/Transport';
 import CredentialForm from './CredentialForm';
+import WebChatViaEmbeddedAuthoringTestBot from './WebChatViaEmbeddedAuthoringTestBot';
 import WebChatViaPrebuiltBot from './WebChatViaPrebuiltBot';
 import WebChatViaPublishedBot from './WebChatViaPublishedBot';
 import WebChatViaTestCanvasBot from './WebChatViaTestCanvasBot';
 
 type SubmittedCredential = {
+  baseURL?: string;
   botIdentifier: string;
   botSchema: string;
   deltaToken: string;
@@ -29,6 +31,7 @@ type CredentialFormChangeCallback = Exclude<PropsOf<typeof CredentialForm>['onCh
 export default memo(function App() {
   const [
     {
+      baseURL,
       botIdentifier,
       botSchema,
       deltaToken,
@@ -43,6 +46,7 @@ export default memo(function App() {
     {
       reset,
       saveToSessionStorage,
+      setBaseURL,
       setBotIdentifier,
       setBotSchema,
       setDeltaToken,
@@ -56,6 +60,7 @@ export default memo(function App() {
     }
   ] = useAppReducer();
   const [submittedCredential, setSubmittedCredential] = useState<SubmittedCredential | undefined>();
+  const baseURLRef = useRefFrom(baseURL);
   const botIdentifierRef = useRefFrom(botIdentifier);
   const botSchemaRef = useRefFrom(botSchema);
   const deltaTokenRef = useRefFrom(deltaToken);
@@ -69,6 +74,7 @@ export default memo(function App() {
 
   const handleCredentialFormChange = useCallback<CredentialFormChangeCallback>(
     ({
+      baseURL,
       botIdentifier,
       botSchema,
       deltaToken,
@@ -80,6 +86,7 @@ export default memo(function App() {
       transport,
       type
     }) => {
+      setBaseURL(baseURL);
       setBotIdentifier(botIdentifier);
       setBotSchema(botSchema);
       setDeltaToken(deltaToken);
@@ -95,6 +102,7 @@ export default memo(function App() {
     },
     [
       saveToSessionStorage,
+      setBaseURL,
       setBotIdentifier,
       setBotSchema,
       setDeltaToken,
@@ -113,6 +121,7 @@ export default memo(function App() {
   const handleSubmit = useCallback(
     () =>
       setSubmittedCredential({
+        baseURL: baseURLRef.current,
         botIdentifier: botIdentifierRef.current,
         botSchema: botSchemaRef.current,
         deltaToken: deltaTokenRef.current,
@@ -126,6 +135,7 @@ export default memo(function App() {
         type: typeRef.current
       }),
     [
+      baseURLRef,
       botIdentifierRef,
       botSchemaRef,
       deltaTokenRef,
@@ -144,6 +154,7 @@ export default memo(function App() {
       <h2>Credentials</h2>
       <CredentialForm
         autoFocus={!!(botIdentifier && environmentID && token)}
+        baseURL={baseURL}
         botIdentifier={botIdentifier}
         botSchema={botSchema}
         deltaToken={deltaToken}
@@ -159,7 +170,18 @@ export default memo(function App() {
         onSubmit={handleSubmit}
       />
       {!!submittedCredential &&
-        (type === 'published bot'
+        (type === 'embedded authoring test bot'
+          ? submittedCredential.baseURL && (
+              <WebChatViaEmbeddedAuthoringTestBot
+                baseURL={submittedCredential.baseURL}
+                botSchema={submittedCredential.botSchema}
+                deltaToken={submittedCredential.deltaToken}
+                emitStartConversationEvent={emitStartConversationEvent}
+                key={submittedCredential.key}
+                token={submittedCredential.token}
+              />
+            )
+          : type === 'published bot'
           ? submittedCredential.botSchema && (
               <WebChatViaPublishedBot
                 botSchema={submittedCredential.botSchema}

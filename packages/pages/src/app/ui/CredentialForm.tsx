@@ -9,6 +9,7 @@ import DoubleTapButton from './DoubleTapButton';
 
 type Props = {
   autoFocus?: boolean;
+  baseURL?: string;
   botIdentifier?: string;
   botSchema?: string;
   deltaToken?: string;
@@ -17,6 +18,7 @@ type Props = {
   hostnameSuffix?: string;
   islandURI?: string;
   onChange?: (nextCredential: {
+    baseURL: string;
     botIdentifier: string;
     botSchema: string;
     deltaToken: string;
@@ -37,6 +39,7 @@ type Props = {
 
 export default memo(function CredentialForm({
   autoFocus,
+  baseURL,
   botIdentifier,
   botSchema,
   deltaToken,
@@ -51,6 +54,7 @@ export default memo(function CredentialForm({
   transport = 'rest',
   type = 'prebuilt bot'
 }: Props) {
+  const baseURLRef = useRefFrom(baseURL);
   const botIdentifierRef = useRefFrom(botIdentifier);
   const botSchemaRef = useRefFrom(botSchema);
   const deltaTokenRef = useRefFrom(deltaToken);
@@ -67,6 +71,7 @@ export default memo(function CredentialForm({
 
   const dispatchChange = useCallback(
     (overrides: {
+      baseURL?: string;
       botIdentifier?: string;
       botSchema?: string;
       deltaToken?: string;
@@ -81,9 +86,14 @@ export default memo(function CredentialForm({
     }) => {
       const transport: Transport = transportRef.current === 'auto' ? transportRef.current : 'rest';
       const type: BotType =
-        typeRef.current === 'published bot' || typeRef.current === 'test canvas bot' ? typeRef.current : 'prebuilt bot';
+        typeRef.current === 'embedded authoring test bot' ||
+        typeRef.current === 'published bot' ||
+        typeRef.current === 'test canvas bot'
+          ? typeRef.current
+          : 'prebuilt bot';
 
       onChangeRef.current?.({
+        baseURL: baseURLRef.current || '',
         botIdentifier: botIdentifierRef.current || '',
         botSchema: botSchemaRef.current || '',
         deltaToken: deltaTokenRef.current || '',
@@ -97,17 +107,32 @@ export default memo(function CredentialForm({
         ...overrides
       });
     },
-    [botIdentifierRef, botSchemaRef, deltaTokenRef, environmentIDRef, hostnameSuffix, islandURI, tokenRef, typeRef]
+    [
+      baseURLRef,
+      botIdentifierRef,
+      botSchemaRef,
+      deltaTokenRef,
+      environmentIDRef,
+      hostnameSuffix,
+      islandURI,
+      tokenRef,
+      typeRef
+    ]
+  );
+
+  const handleBaseURLChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
+    ({ currentTarget }) => dispatchChange({ baseURL: currentTarget.value }),
+    [dispatchChange]
   );
 
   const handleBotIdentifierChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
     ({ currentTarget }) => dispatchChange({ botIdentifier: currentTarget.value }),
-    [environmentIDRef, onChangeRef, tokenRef]
+    [dispatchChange]
   );
 
   const handleBotSchemaChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
     ({ currentTarget }) => dispatchChange({ botSchema: currentTarget.value }),
-    [environmentIDRef, onChangeRef, tokenRef]
+    [dispatchChange]
   );
 
   const handleDeltaTokenChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
@@ -157,7 +182,12 @@ export default memo(function CredentialForm({
 
   const handleTypeChange = useCallback<ChangeEventHandler<HTMLInputElement>>(
     ({ currentTarget: { value } }) =>
-      dispatchChange({ type: value === 'published bot' || value === 'test canvas bot' ? value : 'prebuilt bot' }),
+      dispatchChange({
+        type:
+          value === 'embedded authoring test bot' || value === 'published bot' || value === 'test canvas bot'
+            ? value
+            : 'prebuilt bot'
+      }),
     [dispatchChange]
   );
 
@@ -189,7 +219,7 @@ export default memo(function CredentialForm({
         <dd>
           <label>
             <input
-              checked={type !== 'published bot' && type !== 'test canvas bot'}
+              checked={type !== 'embedded authoring test bot' && type !== 'published bot' && type !== 'test canvas bot'}
               name="bot-type"
               onChange={handleTypeChange}
               type="radio"
@@ -222,11 +252,24 @@ export default memo(function CredentialForm({
             Test canvas bot
           </label>
         </dd>
+        <dd>
+          <label>
+            <input
+              checked={type === 'embedded authoring test bot'}
+              name="bot-type"
+              onChange={handleTypeChange}
+              type="radio"
+              value="embedded authoring test bot"
+            />
+            Embedded authoring test bot
+          </label>
+        </dd>
         <dt>Transport</dt>
         <dd>
           <label>
             <input
-              checked={transport === 'auto'}
+              checked={transport === 'auto' || type === 'embedded authoring test bot'}
+              disabled={type === 'embedded authoring test bot'}
               name="transport"
               onChange={handleTransportChange}
               type="radio"
@@ -238,7 +281,8 @@ export default memo(function CredentialForm({
         <dd>
           <label>
             <input
-              checked={transport !== 'auto'}
+              checked={transport !== 'auto' && type !== 'embedded authoring test bot'}
+              disabled={type === 'embedded authoring test bot'}
               name="transport"
               onChange={handleTransportChange}
               type="radio"
@@ -266,6 +310,13 @@ export default memo(function CredentialForm({
               <input onChange={handleIslandURIChange} type="text" value={islandURI || ''} />
             </dd>
           </label>
+        ) : type === 'embedded authoring test bot' ? (
+          <label>
+            <dt>Base URL</dt>
+            <dd>
+              <input onChange={handleBaseURLChange} type="text" value={baseURL || ''} />
+            </dd>
+          </label>
         ) : (
           <label>
             <dt>Hostname suffix</dt>
@@ -274,13 +325,15 @@ export default memo(function CredentialForm({
             </dd>
           </label>
         )}
-        <label>
-          <dt>Environment ID</dt>
-          <dd>
-            <input onChange={handleEnvironmentIDChange} required type="text" value={environmentID || ''} />
-          </dd>
-        </label>
-        {type === 'published bot' ? (
+        {type !== 'embedded authoring test bot' && (
+          <label>
+            <dt>Environment ID</dt>
+            <dd>
+              <input onChange={handleEnvironmentIDChange} required type="text" value={environmentID || ''} />
+            </dd>
+          </label>
+        )}
+        {type === 'embedded authoring test bot' || type === 'published bot' ? (
           <label>
             <dt>Bot schema</dt>
             <dd>
@@ -308,7 +361,7 @@ export default memo(function CredentialForm({
             />
           </dd>
         </label>
-        {type === 'test canvas bot' && (
+        {(type === 'embedded authoring test bot' || type === 'test canvas bot') && (
           <label>
             <dt>Delta token</dt>
             <dd>

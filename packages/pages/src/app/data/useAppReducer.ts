@@ -5,6 +5,7 @@ import { type Transport } from '../types/Transport';
 import onErrorResumeNext from '../util/onErrorResumeNext';
 
 type State = {
+  baseURL?: string;
   botIdentifier: string;
   botSchema: string;
   deltaToken: string;
@@ -20,6 +21,7 @@ type State = {
 
 type ResetAction = { type: 'RESET' };
 type SaveToSessionStorageAction = { type: 'SAVE_TO_SESSION_STORAGE' };
+type SetBaseURL = { payload: string; type: 'SET_BASE_URL' };
 type SetBotIdentifierAction = { payload: string; type: 'SET_BOT_IDENTIFIER' };
 type SetBotSchemaAction = { payload: string; type: 'SET_BOT_SCHEMA' };
 type SetDeltaTokenAction = { payload: string; type: 'SET_DELTA_TOKEN' };
@@ -34,6 +36,7 @@ type SetTypeAction = { payload: BotType; type: 'SET_TYPE' };
 type Action =
   | ResetAction
   | SaveToSessionStorageAction
+  | SetBaseURL
   | SetBotIdentifierAction
   | SetBotSchemaAction
   | SetDeltaTokenAction
@@ -48,6 +51,7 @@ type Action =
 type DispatchAction = {
   reset: () => void;
   saveToSessionStorage: () => void;
+  setBaseURL: (baseURL: string) => void;
   setBotIdentifier: (botIdentifier: string) => void;
   setBotSchema: (botSchema: string) => void;
   setDeltaToken: (deltaToken: string) => void;
@@ -61,6 +65,7 @@ type DispatchAction = {
 };
 
 const DEFAULT_STATE: State = {
+  baseURL: 'https://api.test.powerplatform.com',
   botIdentifier: '',
   botSchema: '',
   deltaToken: '',
@@ -149,7 +154,11 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
       state = {
         ...state,
         type:
-          action.payload === 'published bot' || action.payload === 'test canvas bot' ? action.payload : 'prebuilt bot'
+          action.payload === 'embedded authoring test bot' ||
+          action.payload === 'published bot' ||
+          action.payload === 'test canvas bot'
+            ? action.payload
+            : 'prebuilt bot'
       };
     }
 
@@ -164,6 +173,8 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
   const reset = useCallback(() => dispatch({ type: 'RESET' }), [dispatch]);
 
   const saveToSessionStorage = useCallback(() => dispatch({ type: 'SAVE_TO_SESSION_STORAGE' }), [dispatch]);
+
+  const setBaseURL = useCallback((baseURL: string) => dispatch({ payload: baseURL, type: 'SET_BASE_URL' }), [dispatch]);
 
   const setBotIdentifier = useCallback(
     (botIdentifier: string) => dispatch({ payload: botIdentifier, type: 'SET_BOT_IDENTIFIER' }),
@@ -211,7 +222,10 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
   const setType = useCallback(
     (type: BotType) =>
       dispatch({
-        payload: type === 'published bot' || type === 'test canvas bot' ? type : 'prebuilt bot',
+        payload:
+          type === 'embedded authoring test bot' || type === 'published bot' || type === 'test canvas bot'
+            ? type
+            : 'prebuilt bot',
         type: 'SET_TYPE'
       }),
     [dispatch]
@@ -222,6 +236,7 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
       Object.freeze({
         reset,
         saveToSessionStorage,
+        setBaseURL,
         setBotIdentifier,
         setBotSchema,
         setDeltaToken,
@@ -234,6 +249,7 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
         setType
       }),
     [
+      setBaseURL,
       setBotIdentifier,
       setBotSchema,
       setDeltaToken,
