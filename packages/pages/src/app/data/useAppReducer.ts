@@ -88,6 +88,10 @@ export default function useAppReducer(): readonly [State, Readonly<DispatchActio
       state = DEFAULT_STATE;
     } else if (action.type === 'SAVE_TO_SESSION_STORAGE') {
       onErrorResumeNext(() => sessionStorage?.setItem('app:state', JSON.stringify(state)));
+    } else if (action.type === 'SET_BASE_URL') {
+      if (state.baseURL !== action.payload) {
+        state = { ...state, baseURL: action.payload };
+      }
     } else if (action.type === 'SET_BOT_IDENTIFIER') {
       if (state.botIdentifier !== action.payload) {
         state = { ...state, botIdentifier: action.payload };
