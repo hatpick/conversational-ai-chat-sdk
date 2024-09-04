@@ -2,6 +2,7 @@ import { EventSourceParserStream, type ParsedEvent } from 'eventsource-parser/st
 import { asyncGeneratorWithLastValue, readableStreamValues } from 'iter-fest';
 import pRetry from 'p-retry';
 
+import { maxValue, minValue, number, pipe, safeParse } from 'valibot';
 import { type Activity } from '../types/Activity';
 import { type Strategy } from '../types/Strategy';
 import { type Telemetry } from '../types/Telemetry';
@@ -29,6 +30,7 @@ const CONVERSATION_ID_HEADER_NAME = 'x-ms-conversationid';
 const CORRELATION_ID_HEADER_NAME = 'x-ms-correlation-id';
 const DEFAULT_RETRY_COUNT = 4; // Will call 5 times.
 const MAX_CONTINUE_TURN = 999;
+const RETRY_AFTER_SCHEMA = pipe(number(), minValue(100), maxValue(60_000));
 
 export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapterAPI {
   // NOTES: This class must work over RPC and cross-domain:
@@ -151,7 +153,7 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
             requestHeaders.set('content-type', 'application/json');
             requestHeaders.set(
               CHAT_ADAPTER_HEADER_NAME,
-              new URLSearchParams([['version', process.env.npm_package_version]] satisfies string[][]).toString()
+              new URLSearchParams([['version', process.env.npm_package_version || '']] satisfies string[][]).toString()
             );
             const correlationId = this.#telemetry?.correlationId;
             correlationId && requestHeaders.set(CORRELATION_ID_HEADER_NAME, correlationId);
@@ -293,9 +295,19 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
           },
           {
             ...this.#retry,
-            onFailedAttempt(error: unknown) {
-              if (currentResponse?.status < 500) {
-                throw error;
+            async onFailedAttempt(error: unknown) {
+              if (currentResponse) {
+                const { headers, status } = currentResponse;
+
+                if (status === 429) {
+                  const retryAfterResult = safeParse(RETRY_AFTER_SCHEMA, parseInt(headers.get('retry-after') || ''));
+
+                  await new Promise(resolve =>
+                    setTimeout(resolve, retryAfterResult.success ? retryAfterResult.output : 1_000)
+                  );
+                } else if (status < 500) {
+                  throw error;
+                }
               }
             }
           }
