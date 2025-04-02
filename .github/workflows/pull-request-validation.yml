@@ -11,7 +11,7 @@ defaults:
     shell: bash
 
 env:
-  node-version: lts/Iron
+  node-version: lts/Jod # Node.js 22
 
 jobs:
   sanity-check-root:
@@ -80,7 +80,7 @@ jobs:
 
       - if: strategy.job-index == 0
         name: Upload tarball artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: tarball
           path: .tmp/tarball/*.tgz
@@ -116,7 +116,7 @@ jobs:
 
       - run: npm run postinstall --if-present --workspaces=true # Run whitelisted postinstall scripts.
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: tarball
           path: .tmp/tarball/
@@ -150,7 +150,7 @@ jobs:
 
     steps:
       - name: Download tarball artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: tarball
 
@@ -180,11 +180,11 @@ jobs:
 
       - if: steps.prepare.outputs.is-private != 'true'
         name: 'Sanity check: all exports exists'
-        run: cat ./package.json | jq '.exports | leaf_paths as $path | getpath($path)' | xargs -L1 test -f
+        run: cat ./package.json | jq '.exports | paths(scalars) as $path | getpath($path)' | xargs -L1 test -f
 
       - if: steps.prepare.outputs.is-private != 'true'
         name: 'Sanity check: all exports has "types" condition'
-        run: cat ./package.json | jq '.exports as $e | $e | leaf_paths | .[0:-1] as $p | $e | getpath($p) | if has("types") then empty else halt_error(1) end'
+        run: cat ./package.json | jq '.exports as $e | $e | paths(scalars) | .[0:-1] as $p | $e | getpath($p) | if has("types") then empty else halt_error(1) end'
 
       - if: steps.prepare.outputs.is-private != 'true'
         name: 'Sanity check: has source maps'
@@ -192,7 +192,7 @@ jobs:
         run: |
           mkdir -p ./dist
           mkdir -p ./lib
-          find ./dist/ ./lib/ -name *.js -print0 | xargs -0 -i test -f {}.map
+          find ./dist/ ./lib/ -name '*.js' -print0 | xargs -0 -i test -f {}.map
 
       - if: steps.prepare.outputs.is-private != 'true'
         name: 'Sanity check: no lib/**/*.spec.*'
@@ -210,8 +210,8 @@ jobs:
           echo $package_matrix | jq -r | tee .tmp/package-matrix.json
 
           cat ./package.json | jq \
-            --argfile matrix .tmp/package-matrix.json \
-            '.dependencies + ($matrix | map({ key: .name }) | from_entries) | with_entries(select(.value // "" | contains("-"))) | if length > 0 then halt_error(1) else empty end'
+            --slurpfile matrix .tmp/package-matrix.json \
+            '.dependencies + ($matrix[0] | map({ key: .name }) | from_entries) | with_entries(select(.value // "" | contains("-"))) | if length > 0 then halt_error(1) else empty end'
 
       - name: 'Sanity check: version must be prerelease and ends with -0'
         run: '[[ "$(cat ./package.json | jq -r ''.version'')" == *-0 ]]'

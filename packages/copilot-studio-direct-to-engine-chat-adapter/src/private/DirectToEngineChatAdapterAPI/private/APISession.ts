@@ -1,140 +1,57 @@
 import { EventSourceParserStream, type ParsedEvent } from 'eventsource-parser/stream';
-import { asyncGeneratorWithLastValue, readableStreamValues } from 'iter-fest';
-import pRetry from 'p-retry';
+import { asyncGeneratorWithLastValue } from 'iter-fest';
+import pRetry, { type Options as PRetryOptions } from 'p-retry';
+import { maxValue, minValue, number, parse, pipe, safeParse } from 'valibot';
+import { resolveURLWithQueryAndHash } from '../../../private/resolveURLWithQueryAndHash';
+import { parseBotResponse } from '../../../private/types/BotResponse';
+import { parseConversationId, type ConversationId } from '../../../private/types/ConversationId';
+import { type Activity } from '../../../types/Activity';
+import { type Telemetry } from '../../../types/Telemetry';
+import { type Transport } from '../../../types/Transport';
+import {
+  directToEngineChatAdapterAPIInitSchema,
+  type DirectToEngineChatAdapterAPIInit
+} from '../DirectToEngineChatAdapterAPIInit';
+import { CHAT_ADAPTER_HEADER_NAME, CONVERSATION_ID_HEADER_NAME, CORRELATION_ID_HEADER_NAME } from './Constants';
 
-import { maxValue, minValue, number, pipe, safeParse } from 'valibot';
-import { type Activity } from '../types/Activity';
-import { type Strategy } from '../types/Strategy';
-import { type Telemetry } from '../types/Telemetry';
-import { type Transport } from '../types/Transport';
-import { resolveURLWithQueryAndHash } from './resolveURLWithQueryAndHash';
-import { parseBotResponse } from './types/BotResponse';
-import { parseConversationId, type ConversationId } from './types/ConversationId';
-import { type HalfDuplexChatAdapterAPI, type StartNewConversationInit } from './types/HalfDuplexChatAdapterAPI';
-
-export type DirectToEngineChatAdapterAPIInit = {
-  retry?:
-    | Readonly<{
-        factor?: number | undefined;
-        minTimeout?: number | undefined;
-        maxTimeout?: number | undefined;
-        randomize?: boolean | undefined;
-        retries?: number | undefined;
-      }>
-    | undefined;
-  telemetry?: Telemetry | undefined;
-};
-
-const CHAT_ADAPTER_HEADER_NAME = 'x-ms-chat-adapter';
-const CONVERSATION_ID_HEADER_NAME = 'x-ms-conversationid';
-const CORRELATION_ID_HEADER_NAME = 'x-ms-correlation-id';
-const DEFAULT_RETRY_COUNT = 4; // Will call 5 times.
 const MAX_CONTINUE_TURN = 999;
 const RETRY_AFTER_SCHEMA = pipe(number(), minValue(100), maxValue(60_000));
 
-export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapterAPI {
-  // NOTES: This class must work over RPC and cross-domain:
-  //        - If need to extends this class, only add async methods (which return Promise)
-  //        - Do not add any non-async methods or properties
-  //        - Do not pass any arguments that is not able to be cloned by the Structured Clone Algorithm
-  //        - After modifying this class, always test with a C1-hosted PVA Anywhere Bot
-  constructor(strategy: Strategy, init?: DirectToEngineChatAdapterAPIInit) {
-    this.#retry = {
-      factor: init?.retry?.factor,
-      maxTimeout: init?.retry?.maxTimeout,
-      minTimeout: init?.retry?.minTimeout,
-      randomize: init?.retry?.randomize,
-      retries: init?.retry?.retries || DEFAULT_RETRY_COUNT
-    };
+class APISession {
+  constructor(init: DirectToEngineChatAdapterAPIInit) {
+    const { retry, signal, telemetry } = parse(directToEngineChatAdapterAPIInitSchema, init);
 
-    this.#strategy = strategy;
-    this.#telemetry = init?.telemetry;
+    this.#retry = retry;
+    this.#signal = signal;
+    this.#telemetry = telemetry;
   }
 
-  #busy: boolean = false;
-  #conversationId: ConversationId | undefined = undefined;
-  #retry: DirectToEngineChatAdapterAPIInit['retry'] & { retries: number };
-  #strategy: Strategy;
-  #telemetry: DirectToEngineChatAdapterAPIInit['telemetry'];
+  #conversationId: string | undefined;
+  #retry: PRetryOptions & { retries: number };
+  #signal: AbortSignal | undefined;
+  #telemetry: Telemetry | undefined;
 
-  public startNewConversation({
-    emitStartConversationEvent,
-    locale
-  }: StartNewConversationInit): AsyncIterableIterator<Activity> {
-    if (this.#busy) {
-      const error = new Error('Another operation is in progress.');
-
-      this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.startNewConversation' });
-
-      throw error;
-    }
-
-    this.#busy = true;
-
-    return async function* (this: DirectToEngineChatAdapterAPI) {
-      try {
-        if (this.#conversationId) {
-          const error = new Error('startNewConversation() cannot be called more than once.');
-
-          this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.startNewConversation' });
-
-          throw error;
-        }
-
-        const { baseURL, body, headers, transport } = await this.#strategy.prepareStartNewConversation();
-
-        yield* this.#post(baseURL, { body, headers, initialBody: { emitStartConversationEvent, locale }, transport });
-      } finally {
-        this.#busy = false;
-      }
-    }.call(this);
+  get conversationId() {
+    return this.#conversationId;
   }
 
-  public executeTurn(activity: Activity): AsyncIterableIterator<Activity> {
-    if (this.#busy) {
-      const error = new Error('Another operation is in progress.');
-
-      this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.executeTurn' });
-
-      throw error;
-    }
-
-    this.#busy = true;
-
-    return async function* (this: DirectToEngineChatAdapterAPI) {
-      try {
-        if (!this.#conversationId) {
-          const error = new Error(`startNewConversation() must be called before executeTurn().`);
-
-          this.#telemetry?.trackException(error, { handledAt: 'DirectToEngineChatAdapterAPI.executeTurn' });
-
-          throw error;
-        }
-
-        const { baseURL, body, headers, transport } = await this.#strategy.prepareExecuteTurn();
-
-        yield* this.#post(baseURL, { body, headers, initialBody: { activity }, transport });
-      } finally {
-        this.#busy = false;
-      }
-    }.call(this);
-  }
-
-  #post(
+  post(
     baseURL: URL,
     {
       body,
       headers,
       initialBody,
+      subPath,
       transport
     }: {
       body?: Record<string, unknown> | undefined;
       headers?: Headers | undefined;
       initialBody?: Record<string, unknown> | undefined;
+      subPath?: string | undefined;
       transport?: Transport | undefined;
     }
   ): AsyncIterableIterator<Activity> {
-    return async function* (this: DirectToEngineChatAdapterAPI) {
+    return async function* (this: APISession) {
       const typingMap = new Map<string, string>();
 
       for (let numTurn = 0; numTurn < MAX_CONTINUE_TURN; numTurn++) {
@@ -159,11 +76,18 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
             correlationId && requestHeaders.set(CORRELATION_ID_HEADER_NAME, correlationId);
 
             currentResponse = await fetch(
-              resolveURLWithQueryAndHash(baseURL, 'conversations', this.#conversationId, isContinueTurn && 'continue'),
+              resolveURLWithQueryAndHash(
+                baseURL,
+                'conversations',
+                this.#conversationId,
+                subPath,
+                isContinueTurn && 'continue'
+              ),
               {
                 body: JSON.stringify(isContinueTurn ? body : { ...body, ...initialBody }),
                 headers: requestHeaders,
-                method: 'POST'
+                method: 'POST',
+                signal: this.#signal
               }
             );
 
@@ -243,8 +167,8 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
               }
 
               const readableStream = body
-                .pipeThrough(new TextDecoderStream())
-                .pipeThrough(new EventSourceParserStream())
+                .pipeThrough(new TextDecoderStream(), { signal: this.#signal })
+                .pipeThrough(new EventSourceParserStream(), { signal: this.#signal })
                 .pipeThrough(
                   new TransformStream<ParsedEvent, Activity>({
                     transform: ({ data, event }, controller) => {
@@ -275,16 +199,43 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
                         controller.enqueue(activity);
                       }
                     }
-                  })
+                  }),
+                  { signal: this.#signal }
                 );
 
-              return (async function* () {
-                for await (const activity of readableStreamValues(readableStream)) {
-                  yield activity;
+              return async function* (this: APISession) {
+                try {
+                  const reader = readableStream.getReader();
+
+                  this.#signal?.addEventListener('abort', () => reader.cancel(), { once: true });
+
+                  for (;;) {
+                    let result: ReadableStreamReadResult<Activity>;
+
+                    try {
+                      result = await reader.read();
+                    } catch (error) {
+                      if (error && error instanceof TypeError && error.message === 'Invalid state: Releasing reader') {
+                        break;
+                      }
+
+                      throw error;
+                    }
+
+                    if (result.done) {
+                      break;
+                    }
+
+                    yield result.value;
+                  }
+                } catch (error) {
+                  if (error && typeof error === 'object' && 'message' in error && error.message !== 'Aborted') {
+                    throw error;
+                  }
                 }
 
                 return 'end' as const;
-              })();
+              }.call(this);
             }
 
             const error = new Error(`Received unknown HTTP header "Content-Type: ${contentType}".`);
@@ -295,7 +246,8 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
           },
           {
             ...this.#retry,
-            async onFailedAttempt(error: unknown) {
+            signal: this.#signal,
+            onFailedAttempt: async (error: unknown) => {
               if (currentResponse) {
                 const { headers, status } = currentResponse;
 
@@ -340,3 +292,5 @@ export default class DirectToEngineChatAdapterAPI implements HalfDuplexChatAdapt
     }.call(this);
   }
 }
+
+export default APISession;

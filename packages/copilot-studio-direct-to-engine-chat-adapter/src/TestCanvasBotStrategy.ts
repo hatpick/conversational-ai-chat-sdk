@@ -38,6 +38,7 @@ const testCanvasBotStrategyInitSchema = object({
   islandURI: instance(URL, 'islandURI must be instance of URL'),
   transport: union([literal('auto'), literal('rest')], 'transport must be either "auto" or "rest"')
 });
+
 const tokenSchema = string('getToken must return a string');
 
 export default class TestCanvasBotStrategy implements Strategy {
@@ -85,4 +86,4 @@ export default class TestCanvasBotStrategy implements Strategy {
   }
 }
 
-export type { TestCanvasBotStrategyInit };
+export { testCanvasBotStrategyInitSchema, type TestCanvasBotStrategyInit };

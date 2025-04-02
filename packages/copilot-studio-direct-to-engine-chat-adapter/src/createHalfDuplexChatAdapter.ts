@@ -1,4 +1,4 @@
-import DirectToEngineChatAdapterAPI from './private/DirectToEngineChatAdapterAPI';
+import DirectToEngineChatAdapterAPI from './private/DirectToEngineChatAdapterAPI/DirectToEngineChatAdapterAPI';
 import { type ExecuteTurnInit, type HalfDuplexChatAdapterAPI } from './private/types/HalfDuplexChatAdapterAPI';
 import { type Activity } from './types/Activity';
 import { type Strategy } from './types/Strategy';

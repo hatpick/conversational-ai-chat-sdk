@@ -11,6 +11,10 @@
   "files": [
     "/bundle.d.ts",
     "/bundle.js",
+    "/experimental.d.ts",
+    "/experimental.js",
+    "/experimental-bundle.d.ts",
+    "/experimental-bundle.js",
     "/dist/"
   ],
   "main": "./dist/copilot-studio-direct-to-engine-chat-adapter.js",
@@ -36,6 +40,26 @@
         "types": "./dist/copilot-studio-direct-to-engine-chat-adapter.bundle.d.ts",
         "default": "./dist/copilot-studio-direct-to-engine-chat-adapter.bundle.js"
       }
+    },
+    "./experimental": {
+      "import": {
+        "types": "./dist/copilot-studio-direct-to-engine-chat-adapter.experimental.d.mts",
+        "default": "./dist/copilot-studio-direct-to-engine-chat-adapter.experimental.mjs"
+      },
+      "require": {
+        "types": "./dist/copilot-studio-direct-to-engine-chat-adapter.experimental.d.ts",
+        "default": "./dist/copilot-studio-direct-to-engine-chat-adapter.experimental.js"
+      }
+    },
+    "./experimental-bundle": {
+      "import": {
+        "types": "./dist/copilot-studio-direct-to-engine-chat-adapter.experimental-bundle.d.mts",
+        "default": "./dist/copilot-studio-direct-to-engine-chat-adapter.experimental-bundle.mjs"
+      },
+      "require": {
+        "types": "./dist/copilot-studio-direct-to-engine-chat-adapter.experimental-bundle.d.ts",
+        "default": "./dist/copilot-studio-direct-to-engine-chat-adapter.experimental-bundle.js"
+      }
     }
   },
   "scripts": {
@@ -51,6 +75,7 @@
   },
   "devDependencies": {
     "@microsoft/applicationinsights-common": "^2.8.15",
+    "@testduet/wait-for": "^0.1.0",
     "@types/jest": "^29.5.3",
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^6.2.0",
@@ -66,16 +91,16 @@
     "prettier": "^3.0.0",
     "tsup": "^8.0.1",
     "type-fest": "^4.10.0",
-    "typescript": "^5.5.3"
+    "typescript": "^5.8.2"
   },
   "dependencies": {
     "base64-arraybuffer": "^1.0.2",
     "core-js-pure": "^3.37.1",
     "eventsource-parser": "^1.1.1",
-    "iter-fest": "^0.2.1",
+    "iter-fest": "^0.3.0",
     "on-error-resume-next": "^2.0.1",
     "p-retry": "^6.2.0",
     "uuid": "^9.0.1",
-    "valibot": "^0.37.0"
+    "valibot": "^1.0.0"
   }
 }
