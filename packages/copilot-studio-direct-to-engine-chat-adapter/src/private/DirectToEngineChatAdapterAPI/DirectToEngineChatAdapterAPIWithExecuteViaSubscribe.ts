@@ -64,15 +64,12 @@ export default class DirectToEngineChatAdapterAPIWithExecuteViaSubscribe extends
   #subscribeSilenceTimeout: number;
 
   async #startSubscribe() {
-    const { baseURL, body, headers } = await this.#strategy.experimental_prepareSubscribeActivities!();
-
     try {
       // We cannot use `new EventSource()` because we need to send headers.
-      const iterator = this.#session.post(baseURL, {
-        body,
-        headers,
+      const iterator = this.#session.post({
+        ...(await this.#strategy.experimental_prepareSubscribeActivities!()),
         subPath: 'subscribe',
-        transport: 'auto' // Only works over SSE.
+        transport: 'auto' // Force SSE as it only works over SSE.
       });
 
       for await (const activity of iterator) {

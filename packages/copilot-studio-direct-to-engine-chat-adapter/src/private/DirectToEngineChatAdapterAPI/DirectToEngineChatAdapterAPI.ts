@@ -48,13 +48,9 @@ export class DirectToEngineChatAdapterAPIImpl implements HalfDuplexChatAdapterAP
           throw error;
         }
 
-        const { baseURL, body, headers, transport } = await this.#strategy.prepareStartNewConversation();
-
-        yield* this.#session.post(baseURL, {
-          body,
-          headers,
-          initialBody: { emitStartConversationEvent, locale },
-          transport
+        yield* this.#session.post({
+          ...(await this.#strategy.prepareStartNewConversation()),
+          initialBody: { emitStartConversationEvent, locale }
         });
       } finally {
         this.#busy = false;
@@ -83,13 +79,9 @@ export class DirectToEngineChatAdapterAPIImpl implements HalfDuplexChatAdapterAP
           throw error;
         }
 
-        const { baseURL, body, headers, transport } = await this.#strategy.prepareExecuteTurn();
-
-        yield* this.#session.post(baseURL, {
-          body,
-          headers,
-          initialBody: { activity },
-          transport
+        yield* this.#session.post({
+          ...(await this.#strategy.prepareExecuteTurn()),
+          initialBody: { activity }
         });
       } finally {
         this.#busy = false;

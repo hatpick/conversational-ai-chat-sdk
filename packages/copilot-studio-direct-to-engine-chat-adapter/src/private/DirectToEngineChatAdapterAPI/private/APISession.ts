@@ -6,6 +6,7 @@ import { resolveURLWithQueryAndHash } from '../../../private/resolveURLWithQuery
 import { parseBotResponse } from '../../../private/types/BotResponse';
 import { parseConversationId, type ConversationId } from '../../../private/types/ConversationId';
 import { type Activity } from '../../../types/Activity';
+import type { StrategyRequestInit } from '../../../types/Strategy';
 import { type Telemetry } from '../../../types/Telemetry';
 import { type Transport } from '../../../types/Transport';
 import {
@@ -13,6 +14,7 @@ import {
   type DirectToEngineChatAdapterAPIInit
 } from '../DirectToEngineChatAdapterAPIInit';
 import { CHAT_ADAPTER_HEADER_NAME, CONVERSATION_ID_HEADER_NAME, CORRELATION_ID_HEADER_NAME } from './Constants';
+import createFetchArguments from './createFetchArguments';
 
 const MAX_CONTINUE_TURN = 999;
 const RETRY_AFTER_SCHEMA = pipe(number(), minValue(100), maxValue(60_000));
@@ -35,22 +37,18 @@ class APISession {
     return this.#conversationId;
   }
 
-  post(
-    baseURL: URL,
-    {
-      body,
-      headers,
-      initialBody,
-      subPath,
-      transport
-    }: {
-      body?: Record<string, unknown> | undefined;
-      headers?: Headers | undefined;
+  post({
+    baseURL,
+    body,
+    headers,
+    initialBody,
+    subPath,
+    transport
+  }: StrategyRequestInit &
+    Readonly<{
       initialBody?: Record<string, unknown> | undefined;
       subPath?: string | undefined;
-      transport?: Transport | undefined;
-    }
-  ): AsyncIterableIterator<Activity> {
+    }>): AsyncIterableIterator<Activity> {
     return async function* (this: APISession) {
       const typingMap = new Map<string, string>();
 
@@ -60,36 +58,21 @@ class APISession {
 
         const activityGeneratorPromise = pRetry(
           async (): Promise<AsyncGenerator<Activity, 'continue' | 'end'>> => {
-            const requestHeaders = new Headers(headers);
-
-            this.#conversationId && requestHeaders.set(CONVERSATION_ID_HEADER_NAME, this.#conversationId);
-            requestHeaders.set(
-              'accept',
-              transport === 'rest' ? 'application/json' : 'text/event-stream,application/json;q=0.9'
-            );
-            requestHeaders.set('content-type', 'application/json');
-            requestHeaders.set(
-              CHAT_ADAPTER_HEADER_NAME,
-              new URLSearchParams([['version', process.env.npm_package_version || '']] satisfies string[][]).toString()
-            );
-            const correlationId = this.#telemetry?.correlationId;
-            correlationId && requestHeaders.set(CORRELATION_ID_HEADER_NAME, correlationId);
-
-            currentResponse = await fetch(
-              resolveURLWithQueryAndHash(
-                baseURL,
-                'conversations',
-                this.#conversationId,
-                subPath,
-                isContinueTurn && 'continue'
-              ),
+            const [url, requestInit] = createFetchArguments(
               {
-                body: JSON.stringify(isContinueTurn ? body : { ...body, ...initialBody }),
-                headers: requestHeaders,
-                method: 'POST',
-                signal: this.#signal
+                baseURL,
+                body: isContinueTurn ? body : { ...body, ...initialBody },
+                headers,
+                transport
+              },
+              {
+                conversationId: this.#conversationId,
+                correlationId: this.#telemetry?.correlationId,
+                pathSuffixes: [subPath, isContinueTurn && 'continue'].filter((value): value is string => !!value)
               }
             );
+
+            currentResponse = await fetch(url, { ...requestInit, signal: this.#signal });
 
             if (!currentResponse.ok) {
               const error = new Error(`Server returned ${currentResponse.status} while calling the service.`);
