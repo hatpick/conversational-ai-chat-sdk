@@ -60,7 +60,7 @@ export default function toDirectLineJS(
             await handleAcknowledgementOnce();
 
             observer.next(patchActivity(activity));
-            
+
             // Yield control back to the browser's event loop after each activity.
             // This ensures the UI remains responsive and can render activities progressively,
             // preventing the main thread from being blocked during large activity batches.
