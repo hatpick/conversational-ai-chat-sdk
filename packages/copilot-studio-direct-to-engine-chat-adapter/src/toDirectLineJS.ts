@@ -60,6 +60,13 @@ export default function toDirectLineJS(
             await handleAcknowledgementOnce();
 
             observer.next(patchActivity(activity));
+            
+            // Yield control back to the browser's event loop after each activity.
+            // This ensures the UI remains responsive and can render activities progressively,
+            // preventing the main thread from being blocked during large activity batches.
+            // By yielding after every activity (not just streaming ones), we maintain
+            // consistent behavior and avoid UI freezes regardless of activity type.
+            await new Promise<void>(resolve => setTimeout(resolve, 0));
           }
 
           // All activities should be retrieved by now, we will start accepting "give up" signal from this point of time.
